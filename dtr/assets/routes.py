@@ -4,12 +4,13 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, UploadFile
 from pydantic import BaseModel
 
 from .. import audit
 from ..auth import current_principal
-from ..db import TenantDB, db
+from ..db import TenantDB
+from ..i18n import Msg, Problem, lang_of, tr
 from ..tenancy import EDIT_UNITS, IMPORT_UNITS, Principal
 from . import csv_import
 from .units import ACTIVE, EDITABLE, RETIRED, TYPES, build_unit, unit_key
@@ -24,10 +25,9 @@ def _now() -> datetime:
 
 def _need(p: Principal, perm: str) -> None:
     if p.is_operator:
-        raise HTTPException(403, "Apex can view units but not change them "
-                                 "from here.")
+        raise Problem(403, Msg("err.operator_read_only"))
     if not p.may(perm):
-        raise HTTPException(403, "Your role can't change units.")
+        raise Problem(403, Msg("err.role_cannot_edit_units"))
 
 
 def _stamp(unit: dict, p: Principal) -> dict:
@@ -77,7 +77,7 @@ async def list_units(q: str = "", type: str = "", status: str = ACTIVE,
 async def get_unit(asset_id: str, p: Principal = Depends(current_principal)):
     u = await TenantDB(p).find_one("assets", {"asset_id": asset_id})
     if not u:
-        raise HTTPException(404, "No such unit.")
+        raise Problem(404, Msg("err.no_such_unit"))
     return u
 
 
@@ -89,38 +89,40 @@ async def _taken(tdb: TenantDB, key: str, but: str | None = None) -> bool:
 
 
 @router.post("", status_code=201)
-async def add_unit(body: UnitIn, p: Principal = Depends(current_principal)):
+async def add_unit(body: UnitIn, p: Principal = Depends(current_principal),
+                   lang: str = Depends(lang_of)):
     _need(p, EDIT_UNITS)
     tdb = TenantDB(p)
     unit, errors, warnings = build_unit(body.model_dump())
     if not errors and await _taken(tdb, unit["unit_number_key"]):
-        errors.append(f"Unit {unit['unit_number']} is already in DTR.")
+        errors.append(Msg("unit.err.exists", unit=unit["unit_number"]))
     if errors:
-        raise HTTPException(400, {"errors": errors, "warnings": warnings})
+        raise Problem(400, {"errors": errors, "warnings": warnings})
     unit.update(asset_id=uuid.uuid4().hex, status=ACTIVE, retired_at=None,
                 created_at=_now(), created_by=p.user_id)
     unit = await tdb.insert("assets", _stamp(unit, p))
     await audit.record(tdb, p, "unit.created", "asset", unit["asset_id"],
                        after=unit)
-    return {"unit": unit, "warnings": warnings}
+    return {"unit": unit, "warnings": tr(warnings, lang)}
 
 
 @router.patch("/{asset_id}")
 async def edit_unit(asset_id: str, body: UnitIn,
-                    p: Principal = Depends(current_principal)):
+                    p: Principal = Depends(current_principal),
+                    lang: str = Depends(lang_of)):
     _need(p, EDIT_UNITS)
     tdb = TenantDB(p)
     old = await tdb.find_one("assets", {"asset_id": asset_id})
     if not old:
-        raise HTTPException(404, "No such unit.")
+        raise Problem(404, Msg("err.no_such_unit"))
     sent = body.model_dump(exclude_unset=True)
     merged = {f: old.get(f) for f in EDITABLE}
     merged.update({k: v for k, v in sent.items() if k in EDITABLE})
     unit, errors, warnings = build_unit(merged)
     if not errors and await _taken(tdb, unit["unit_number_key"], asset_id):
-        errors.append(f"Unit {unit['unit_number']} is already in DTR.")
+        errors.append(Msg("unit.err.exists", unit=unit["unit_number"]))
     if errors:
-        raise HTTPException(400, {"errors": errors, "warnings": warnings})
+        raise Problem(400, {"errors": errors, "warnings": warnings})
     changes = {k: v for k, v in unit.items() if old.get(k) != v}
     for f in ("odometer", "engine_hours"):
         if f in changes and changes[f] is not None:
@@ -130,7 +132,7 @@ async def edit_unit(asset_id: str, body: UnitIn,
         await audit.record(tdb, p, "unit.edited", "asset", asset_id,
                            before={k: old.get(k) for k in changes},
                            after=changes)
-    return {"unit": {**old, **changes}, "warnings": warnings}
+    return {"unit": {**old, **changes}, "warnings": tr(warnings, lang)}
 
 
 class RetireIn(BaseModel):
@@ -147,13 +149,13 @@ async def retire_unit(asset_id: str, body: RetireIn,
     """
     _need(p, EDIT_UNITS)
     if not body.reason.strip():
-        raise HTTPException(400, "Say why the unit is leaving the fleet.")
+        raise Problem(400, Msg("err.retire_reason_required"))
     tdb = TenantDB(p)
     old = await tdb.find_one("assets", {"asset_id": asset_id})
     if not old:
-        raise HTTPException(404, "No such unit.")
+        raise Problem(404, Msg("err.no_such_unit"))
     if old["status"] == RETIRED:
-        raise HTTPException(400, "This unit is already out of the fleet.")
+        raise Problem(400, Msg("err.already_retired"))
     changes = {"status": RETIRED, "retired_at": _now(),
                "retired_reason": body.reason.strip()}
     await tdb.update("assets", {"asset_id": asset_id}, changes)
@@ -164,7 +166,8 @@ async def retire_unit(asset_id: str, body: RetireIn,
 
 @router.post("/import")
 async def import_units(file: UploadFile = File(...), commit: bool = False,
-                       p: Principal = Depends(current_principal)):
+                       p: Principal = Depends(current_principal),
+                       lang: str = Depends(lang_of)):
     """
     Check a fleet-list CSV (commit=false), then load it (commit=true).
     Loads only when every row is clean.
@@ -172,14 +175,13 @@ async def import_units(file: UploadFile = File(...), commit: bool = False,
     _need(p, IMPORT_UNITS)
     raw = await file.read(MAX_UPLOAD + 1)
     if len(raw) > MAX_UPLOAD:
-        raise HTTPException(400, "The file is over 2 MB. A fleet list "
-                                 "should be far smaller; is it the right file?")
+        raise Problem(400, Msg("csv.err.too_big"))
     tdb = TenantDB(p)
     existing = {u["unit_number_key"] for u in await tdb.find("assets")}
     result = csv_import.check_file(raw, existing)
     units = result.pop("units")
     if not commit or not result["ok"]:
-        return {**result, "saved": 0}
+        return tr({**result, "saved": 0}, lang)
     now = _now()
     docs = []
     for u in units:
@@ -191,4 +193,4 @@ async def import_units(file: UploadFile = File(...), commit: bool = False,
     await audit.record(tdb, p, "units.imported", "asset", "import",
                        after={"file": file.filename, "count": len(docs),
                               "asset_ids": [d["asset_id"] for d in docs]})
-    return {**result, "saved": len(docs)}
+    return tr({**result, "saved": len(docs)}, lang)

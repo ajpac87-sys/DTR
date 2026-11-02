@@ -15,6 +15,7 @@ import csv
 import io
 import re
 
+from ..i18n import Msg
 from .units import build_unit, unit_key
 
 MAX_ROWS = 2000
@@ -73,7 +74,7 @@ def read_csv(raw: bytes) -> list[list[str]]:
         except UnicodeDecodeError:
             continue
     else:
-        raise ValueError("The file isn't readable text. Save it as CSV.")
+        raise ValueError("csv.err.unreadable")
     try:
         dialect = csv.Sniffer().sniff(text[:4096], delimiters=",;\t")
     except csv.Error:
@@ -92,25 +93,22 @@ def check_file(raw: bytes, existing_keys: set[str]) -> dict:
     try:
         rows = read_csv(raw)
     except ValueError as e:
-        return {"ok": False, "problems": [str(e)], "rows": [], "units": []}
+        return {"ok": False, "problems": [Msg(str(e))], "rows": [], "units": []}
     if not rows:
-        return {"ok": False, "problems": ["The file is empty."], "rows": [],
+        return {"ok": False, "problems": [Msg("csv.err.empty")], "rows": [],
                 "units": []}
 
     mapping, ignored = map_headers(rows[0])
     problems: list[str] = []
     if "unit_number" not in mapping.values():
-        problems.append("No unit number column found. Name a column "
-                        "'Unit' or 'Unit Number'.")
+        problems.append(Msg("csv.err.no_unit_column"))
     if "asset_type" not in mapping.values():
-        problems.append("No type column found. Add a 'Type' column saying "
-                        "truck or trailer for each row.")
+        problems.append(Msg("csv.err.no_type_column"))
     body = rows[1:]
     if not body:
-        problems.append("The file has headings but no units.")
+        problems.append(Msg("csv.err.no_rows"))
     if len(body) > MAX_ROWS:
-        problems.append(f"The file has {len(body)} rows; the limit is "
-                        f"{MAX_ROWS}.")
+        problems.append(Msg("csv.err.too_many", n=len(body), limit=MAX_ROWS))
     if problems:
         return {"ok": False, "problems": problems, "rows": [], "units": [],
                 "columns": {rows[0][i]: f for i, f in mapping.items()},
@@ -123,10 +121,9 @@ def check_file(raw: bytes, existing_keys: set[str]) -> dict:
         unit, errors, warnings = build_unit(data)
         key = unit_key(unit.get("unit_number") or "")
         if key and key in existing_keys:
-            errors.append(f"Unit {unit['unit_number']} is already in DTR.")
+            errors.append(Msg("unit.err.exists", unit=unit["unit_number"]))
         if key and key in seen:
-            errors.append(f"Unit {unit['unit_number']} is also on row "
-                          f"{seen[key]}.")
+            errors.append(Msg("csv.err.dup_row", unit=unit["unit_number"], row=seen[key]))
         if key:
             seen.setdefault(key, n)
         results.append({"row": n, "unit_number": unit.get("unit_number"),
@@ -137,7 +134,7 @@ def check_file(raw: bytes, existing_keys: set[str]) -> dict:
     bad = sum(1 for r in results if r["errors"])
     return {
         "ok": bad == 0,
-        "problems": ([f"{bad} row(s) need fixing. Nothing was saved."]
+        "problems": ([Msg("csv.err.rows_bad", n=bad)]
                      if bad else []),
         "rows": results,
         "units": units if bad == 0 else [],

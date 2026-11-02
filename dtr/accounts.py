@@ -12,14 +12,15 @@ import os
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, EmailStr, Field
 
 from . import audit
 from .auth import current_principal, encode_token
 from .db import TenantDB, db
+from .i18n import LANGUAGES, Msg, Problem, pick
 from .passwords import hash_password, password_ok, verify_password
-from .tenancy import LABEL, MANAGE_PEOPLE, Principal, Role, can_grant
+from .tenancy import MANAGE_PEOPLE, Principal, Role, can_grant
 
 router = APIRouter(prefix="/api")
 
@@ -34,8 +35,9 @@ def _now() -> datetime:
 
 def _public(u: dict) -> dict:
     return {"user_id": u["user_id"], "name": u["name"], "email": u["email"],
-            "role": u["role"], "role_label": LABEL[Role(u["role"])],
-            "org_id": u.get("org_id"), "active": u.get("active", True)}
+            "role": u["role"], "org_id": u.get("org_id"),
+            "active": u.get("active", True),
+            "language": u.get("language") or "en"}
 
 
 def _principal(u: dict) -> Principal:
@@ -54,9 +56,9 @@ async def login(body: LoginIn):
     ok = verify_password(body.password, u["password_hash"] if u
                          else _DUMMY_HASH)
     if not u or not ok:
-        raise HTTPException(401, "Email or password is wrong.")
+        raise Problem(401, Msg("err.bad_login"))
     if not u.get("active", True):
-        raise HTTPException(401, "This account is switched off.")
+        raise Problem(401, Msg("err.account_off"))
     org = None
     if u.get("org_id"):
         org = await db().orgs.find_one({"org_id": u["org_id"]}, {"_id": 0})
@@ -71,7 +73,20 @@ async def me(p: Principal = Depends(current_principal)):
     if p.org_id:
         org = await db().orgs.find_one({"org_id": p.org_id}, {"_id": 0})
     return {"user": _public(u), "org": org,
-            "can": sorted(_perms(p))}
+            "can": sorted(_perms(p)), "languages": LANGUAGES}
+
+
+class PrefsIn(BaseModel):
+    language: str
+
+
+@router.patch("/me")
+async def set_prefs(body: PrefsIn, p: Principal = Depends(current_principal)):
+    """A person's own language. Saved so it follows them to any phone."""
+    lang = pick(body.language)
+    await db().users.update_one({"user_id": p.user_id},
+                                {"$set": {"language": lang}})
+    return {"language": lang}
 
 
 def _perms(p: Principal) -> set[str]:
@@ -86,17 +101,19 @@ class UserIn(BaseModel):
     email: EmailStr
     role: Role
     password: str = Field(max_length=256)
+    language: str | None = None
 
 
 async def _create_user(org_id: str | None, body: UserIn) -> dict:
     if not password_ok(body.password):
-        raise HTTPException(400, "Password must be at least 8 characters.")
+        raise Problem(400, Msg("err.password_short"))
     email = body.email.lower()
     if await db().users.find_one({"email": email}, {"_id": 1}):
-        raise HTTPException(409, "That email already has an account.")
+        raise Problem(409, Msg("err.email_taken"))
     u = {"user_id": uuid.uuid4().hex, "org_id": org_id,
          "name": body.name.strip(), "email": email, "role": body.role.value,
          "password_hash": hash_password(body.password), "active": True,
+         "language": pick(body.language),
          "created_at": _now()}
     await db().users.insert_one(dict(u))
     return u
@@ -105,8 +122,7 @@ async def _create_user(org_id: str | None, body: UserIn) -> dict:
 @router.get("/users")
 async def list_users(p: Principal = Depends(current_principal)):
     if p.is_operator:
-        raise HTTPException(400, "Open a company from the console to see "
-                                 "its people.")
+        raise Problem(400, Msg("err.operator_open_company"))
     rows = await db().users.find({"org_id": p.org_id}, {"_id": 0}
                                  ).sort("name", 1).to_list(None)
     return {"users": [_public(u) for u in rows],
@@ -117,8 +133,9 @@ async def list_users(p: Principal = Depends(current_principal)):
 @router.post("/users", status_code=201)
 async def add_user(body: UserIn, p: Principal = Depends(current_principal)):
     if not p.may(MANAGE_PEOPLE) or not can_grant(p.role, body.role):
-        raise HTTPException(403, f"A {LABEL[p.role].lower()} can't add a "
-                                 f"{LABEL[body.role].lower()}.")
+        raise Problem(403, Msg("err.cannot_add_role",
+                                 actor=Msg("role." + p.role.value),
+                                 target=Msg("role." + body.role.value)))
     u = await _create_user(p.org_id, body)
     await audit.record(TenantDB(p), p, "user.created", "user", u["user_id"],
                        after=_public(u))
@@ -136,7 +153,7 @@ class OrgIn(BaseModel):
 
 def _operator_only(p: Principal) -> None:
     if not p.is_operator:
-        raise HTTPException(403, "Only Apex can do this.")
+        raise Problem(403, Msg("err.operator_only"))
 
 
 @router.get("/operator/orgs")

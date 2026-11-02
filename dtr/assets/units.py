@@ -14,6 +14,8 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 
+from ..i18n import Msg
+
 POWER_UNIT = "power_unit"
 TRAILER = "trailer"
 TYPES = {POWER_UNIT: "Power unit", TRAILER: "Trailer"}
@@ -70,18 +72,15 @@ def check_vin(vin: str | None) -> tuple[str | None, list[str], list[str]]:
     """
     v = re.sub(r"[\s-]", "", (vin or "")).upper()
     if not v:
-        return None, [], ["No VIN entered."]
+        return None, [], [Msg("vin.warn.none")]
     if len(v) != 17:
         if len(v) < 17:
-            return v, [], [f"VIN is {len(v)} characters, not 17. Fine for "
-                           "a pre-1981 unit; otherwise check the plate."]
-        return None, [f"VIN is {len(v)} characters; a VIN has 17."], []
+            return v, [], [Msg("vin.warn.short", n=len(v))]
+        return None, [Msg("vin.err.long", n=len(v))], []
     if not _VIN_CHARS.match(v):
-        return None, ["VIN has a character a VIN never uses (I, O and Q "
-                      "are never used)."], []
+        return None, [Msg("vin.err.chars")], []
     if not vin_check_digit_ok(v):
-        return v, [], ["VIN check digit doesn't add up. Check it against "
-                       "the plate on the unit."]
+        return v, [], [Msg("vin.warn.check_digit")]
     return v, [], []
 
 
@@ -91,10 +90,10 @@ def check_year(year) -> tuple[int | None, list[str]]:
     try:
         y = int(str(year).strip())
     except ValueError:
-        return None, [f"Year '{year}' is not a number."]
+        return None, [Msg("year.err.nan", value=str(year))]
     latest = datetime.now(timezone.utc).year + 1
     if not 1950 <= y <= latest:
-        return None, [f"Year {y} is outside 1950 to {latest}."]
+        return None, [Msg("year.err.range", year=y, latest=latest)]
     return y, []
 
 
@@ -104,9 +103,9 @@ def check_reading(value, what: str) -> tuple[float | None, list[str]]:
     try:
         n = float(str(value).replace(",", "").strip())
     except ValueError:
-        return None, [f"{what} '{value}' is not a number."]
+        return None, [Msg("reading.err.nan", what=Msg(what), value=str(value))]
     if n < 0:
-        return None, [f"{what} can't be negative."]
+        return None, [Msg("reading.err.negative", what=Msg(what))]
     return n, []
 
 
@@ -124,14 +123,14 @@ def build_unit(data: dict) -> tuple[dict, list[str], list[str]]:
     kind = data.get("asset_type")
     kind = kind if kind in TYPES else parse_type(kind)
     if not kind:
-        errors.append("Say whether it's a power unit or a trailer.")
+        errors.append(Msg("unit.err.type_required"))
     out["asset_type"] = kind
 
     unit = re.sub(r"\s+", " ", str(data.get("unit_number") or "").strip())
     if not unit:
-        errors.append("Unit number is required.")
+        errors.append(Msg("unit.err.number_required"))
     elif len(unit) > 30:
-        errors.append("Unit number is longer than 30 characters.")
+        errors.append(Msg("unit.err.number_too_long"))
     out["unit_number"] = unit
     out["unit_number_key"] = unit_key(unit)
 
@@ -156,25 +155,23 @@ def build_unit(data: dict) -> tuple[dict, list[str], list[str]]:
         owned = not furnished
     owned = bool(owned)
     if not owned and not furnished:
-        errors.append("This unit isn't owned by the company, so enter who "
-                      "furnishes it (owner's name).")
+        errors.append(Msg("unit.err.furnished_by_required"))
     out["owned_by_carrier"] = owned
     out["furnished_by"] = None if owned else furnished
 
-    odo, e = check_reading(data.get("odometer"), "Odometer")
+    odo, e = check_reading(data.get("odometer"), "field.odometer")
     errors += e
-    hrs, e = check_reading(data.get("engine_hours"), "Engine hours")
+    hrs, e = check_reading(data.get("engine_hours"), "field.engine_hours")
     errors += e
     out["odometer"] = odo
     out["engine_hours"] = hrs
     if kind == TRAILER and hrs is not None:
-        warnings.append("Engine hours entered on a trailer. Fine for a "
-                        "reefer unit; otherwise check.")
+        warnings.append(Msg("unit.warn.trailer_hours"))
 
     if not out["make"]:
-        warnings.append("No make entered.")
+        warnings.append(Msg("unit.warn.no_make"))
     if year is None:
-        warnings.append("No year entered.")
+        warnings.append(Msg("unit.warn.no_year"))
     return out, errors, warnings
 
 

@@ -13,9 +13,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from .i18n import Msg, Problem
 from .tenancy import Principal, Role
 
 ISSUER = "dtr"
@@ -65,16 +66,16 @@ async def current_principal(
         cred: HTTPAuthorizationCredentials | None = Depends(_bearer)
 ) -> Principal:
     if cred is None:
-        raise HTTPException(401, "Sign in first.")
+        raise Problem(401, Msg("err.sign_in_first"))
     try:
         p = decode_token(cred.credentials)
     except Exception:
-        raise HTTPException(401, "Your sign-in has expired. Sign in again.")
+        raise Problem(401, Msg("err.session_expired"))
     # A token stays valid until it expires, so check the account was not
     # switched off in the meantime.
     from .db import db
     user = await db().users.find_one({"user_id": p.user_id},
                                      {"_id": 0, "active": 1})
     if not user or not user.get("active", True):
-        raise HTTPException(401, "This account is switched off.")
+        raise Problem(401, Msg("err.account_off"))
     return p

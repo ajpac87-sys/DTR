@@ -4,6 +4,7 @@ import copy
 import pytest
 
 from dtr import audit
+from dtr.i18n import tr
 from dtr.assets import csv_import, units
 from dtr.tenancy import (DENY_ALL, Principal, Role, can_grant, scope_filter,
                          scoped)
@@ -96,7 +97,7 @@ def test_furnished_unit_needs_owner_name():
     _, errors, _ = units.build_unit({"asset_type": "trailer",
                                      "unit_number": "T1",
                                      "owned_by_carrier": False})
-    assert any("furnishes" in e for e in errors)
+    assert any("furnishes" in e for e in tr(errors))
     u, errors, _ = units.build_unit({"asset_type": "trailer",
                                      "unit_number": "T1",
                                      "furnished_by": "Penske"})
@@ -144,7 +145,7 @@ Unit,Type
 200,trailer
 """), {"200"})
     assert not r["ok"]
-    errs = [e for row in r["rows"] for e in row["errors"]]
+    errs = [e for row in tr(r["rows"]) for e in row["errors"]]
     assert any("also on row 2" in e for e in errs)
     assert any("already in DTR" in e for e in errs)
 
@@ -189,3 +190,34 @@ def test_chain_shows_a_deletion():
     c = _chain(5)
     del c[1]
     assert not audit.verify_chain(c)["ok"]
+
+
+# --- Languages -----------------------------------------------------------------
+
+def test_every_language_has_every_message_with_same_blanks():
+    import json
+    import re
+    from pathlib import Path
+    from dtr.i18n import LANGUAGES
+    root = Path(__file__).resolve().parent.parent / "dtr" / "static" / "locales"
+    en = json.loads((root / "en.json").read_text(encoding="utf-8"))
+    blanks = lambda s: sorted(re.findall(r"\{(\w+)\}", s))
+    for code in LANGUAGES:
+        cat = json.loads((root / f"{code}.json").read_text(encoding="utf-8"))
+        assert set(cat) == set(en), code
+        for k, v in en.items():
+            assert blanks(cat[k]) == blanks(v), (code, k)
+            assert cat[k].strip(), (code, k)
+
+
+def test_every_word_on_screen_is_in_the_catalog():
+    """A key used in app.js but missing from en.json would show as raw code."""
+    import json
+    import re
+    from pathlib import Path
+    static = Path(__file__).resolve().parent.parent / "dtr" / "static"
+    en = json.loads((static / "locales" / "en.json").read_text(encoding="utf-8"))
+    js = (static / "app.js").read_text(encoding="utf-8")
+    used = set(re.findall(r'\bt\("([a-z_]+\.[a-z_.]+)"', js))
+    missing = sorted(k for k in used if k not in en and not k.endswith("."))
+    assert missing == []

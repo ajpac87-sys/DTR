@@ -17,6 +17,9 @@ from .tenancy import DENY_ALL, Principal, scoped
 TENANT_SCOPED_COLLECTIONS = frozenset({
     "assets",
     "audit_log",
+    "counters",        # per-company running numbers (WO-0001, ...)
+    "work_orders",
+    "wo_photos",
 })
 
 # Not company-scoped: looked up across companies by the sign-in code, and
@@ -53,6 +56,12 @@ async def ensure_indexes() -> None:
     await d.assets.create_index([("org_id", 1), ("unit_number_key", 1)],
                                 unique=True)
     await d.audit_log.create_index([("org_id", 1), ("seq", 1)], unique=True)
+    await d.counters.create_index([("org_id", 1), ("name", 1)], unique=True)
+    await d.work_orders.create_index("work_order_id", unique=True)
+    await d.work_orders.create_index([("org_id", 1), ("number", 1)],
+                                     unique=True)
+    await d.work_orders.create_index([("org_id", 1), ("asset_id", 1)])
+    await d.wo_photos.create_index("photo_id", unique=True)
 
 
 class ScopeError(RuntimeError):
@@ -119,9 +128,32 @@ class TenantDB:
             await self._col(name).insert_many([dict(d) for d in docs])
         return docs
 
-    async def update(self, name: str, cond: dict, changes: dict) -> bool:
-        if "org_id" in changes:
+    async def update(self, name: str, cond: dict, changes: dict | None = None,
+                     push: dict | None = None) -> bool:
+        """
+        Change one record in this company. `changes` sets fields; `push`
+        adds to lists. Returns False if no record matched (wrong company,
+        or the condition, such as the expected status, no longer holds).
+        """
+        changes = changes or {}
+        if "org_id" in changes or "org_id" in (push or {}):
             raise ScopeError("a record cannot be moved to another company")
         q = {"$and": [{"org_id": self._writer_org()}, cond]}
-        res = await self._col(name).update_one(q, {"$set": changes})
+        doc = {}
+        if changes:
+            doc["$set"] = changes
+        if push:
+            doc["$push"] = push
+        if not doc:
+            return await self._col(name).count_documents(q) == 1
+        res = await self._col(name).update_one(q, doc)
         return res.matched_count == 1
+
+    async def next_number(self, counter: str) -> int:
+        """The next running number for this company (1, 2, 3...)."""
+        from pymongo import ReturnDocument
+        org = self._writer_org()
+        doc = await self._col("counters").find_one_and_update(
+            {"org_id": org, "name": counter}, {"$inc": {"value": 1}},
+            upsert=True, return_document=ReturnDocument.AFTER)
+        return doc["value"]
