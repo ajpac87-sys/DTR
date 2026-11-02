@@ -6,12 +6,18 @@
   --ok: #166534; --ok-bg: #dcfce7;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #111418; --card: #1b2027; --text: #e8eaed; --muted: #9aa5b1;
     --line: #2d343d; --accent: #f97316; --accent-text: #111418;
     --bad: #fca5a5; --bad-bg: #3b1515; --warn: #fcd34d; --warn-bg: #3a2c0b;
-    --ok: #86efac; --ok-bg: #12301c;
+    --ok: #86efac; --ok-bg: #12301c; color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+    --bg: #111418; --card: #1b2027; --text: #e8eaed; --muted: #9aa5b1;
+    --line: #2d343d; --accent: #f97316; --accent-text: #111418;
+    --bad: #fca5a5; --bad-bg: #3b1515; --warn: #fcd34d; --warn-bg: #3a2c0b;
+    --ok: #86efac; --ok-bg: #12301c; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text);
@@ -114,3 +120,6 @@ label.filebtn { display: inline-flex; align-items: center; justify-content: cent
 [lang="hi"] body { font-family: "Noto Sans Devanagari", system-ui, sans-serif; }
 /* Names, dates and numbers keep their own reading direction inside Urdu. */
 .muted, .pill, dd { unicode-bidi: plaintext; }
+.voidbox { padding: 6px 0 10px; }
+.quick { display: grid; gap: 8px; margin-top: 14px; }
+.quick button { text-align: start; font-weight: 400; }

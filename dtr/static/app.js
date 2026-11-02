@@ -29,6 +29,7 @@ function t(key, params) {
 async function loadLang(lang) {
   if (!LANGS[lang]) lang = "en";
   const get = async (l) => {
+    if (window.DTR_LOCALES) return window.DTR_LOCALES[l] || {};
     const r = await fetch(`/static/locales/${l}.json`);
     return r.ok ? r.json() : {};
   };
@@ -489,16 +490,24 @@ SCREENS.wo = async (id) => {
     vendor: val("v_vendor"), invoice_number: val("v_inv"), amount: val("v_amt"),
     description: val("v_desc"), reason: val("v_reason") }); };
   if ($("#fn")) $("#fn").onsubmit = (ev) => { ev.preventDefault(); act("notes", { text: val("n_text") }); };
+  // Voiding asks for the reason right on the line, not in a pop-up.
   view.querySelectorAll("[data-void]").forEach((b) => (b.onclick = () => {
     const [kind, line_id] = b.dataset.void.split(":");
-    const reason = prompt(t("wo.void_reason"));
-    if (reason && reason.trim()) act("void", { kind, line_id, reason });
+    const box = document.createElement("form");
+    box.className = "voidbox";
+    box.innerHTML = `<label for="vr_${line_id}">${esc(t("wo.void_reason"))}</label>
+      <div class="row"><input id="vr_${line_id}" class="grow" required>
+      <button class="secondary">${esc(t("wo.void"))}</button></div>`;
+    b.closest(".line").after(box);
+    b.remove();
+    box.querySelector("input").focus();
+    box.onsubmit = (ev) => { ev.preventDefault();
+      act("void", { kind, line_id, reason: box.querySelector("input").value }); };
   }));
   if ($("#sign")) $("#sign").onclick = () => act("complete", { typed_name: $("#s_name").value }, t("wo.signed_ok"));
   if ($("#close")) $("#close").onclick = () => act("close", {}, t("wo.closed_ok"));
-  if ($("#cancel")) $("#cancel").onclick = () => {
-    if (confirm(t("wo.cancel_confirm"))) act("cancel", { reason: $("#c_reason").value }, t("wo.cancelled_ok"));
-  };
+  if ($("#cancel")) $("#cancel").onclick = () =>
+    act("cancel", { reason: $("#c_reason").value }, t("wo.cancelled_ok"));
   if ($("#amend")) $("#amend").onclick = () => act("amend", { field: $("#a_field").value,
     value: $("#a_value").value, reason: $("#a_reason").value }, t("wo.amended_ok"));
   if ($("#edit")) $("#edit").onclick = () => {
@@ -648,7 +657,6 @@ SCREENS.unit = async (id) => {
     $("#ret").onclick = async () => {
       const reason = $("#why").value.trim();
       if (!reason) return toast(t("units.reason_first"));
-      if (!confirm(t("units.leaving_confirm", { unit: u.unit_number }))) return;
       try {
         await api(`/api/assets/${id}/retire`, { method: "POST", json: { reason } });
         toast(t("units.marked_left")); go("units");

@@ -1,0 +1,1433 @@
+<title>DTR Preview</title>
+<style>
+[hidden] { display: none !important; }
+:root {
+  --bg: #f4f5f7; --card: #ffffff; --text: #1b1f24; --muted: #5f6b7a;
+  --line: #d9dee5; --accent: #c2410c; --accent-text: #ffffff;
+  --bad: #b91c1c; --bad-bg: #fde8e8; --warn: #92400e; --warn-bg: #fef3c7;
+  --ok: #166534; --ok-bg: #dcfce7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --card: #1b2027; --text: #e8eaed; --muted: #9aa5b1;
+    --line: #2d343d; --accent: #f97316; --accent-text: #111418;
+    --bad: #fca5a5; --bad-bg: #3b1515; --warn: #fcd34d; --warn-bg: #3a2c0b;
+    --ok: #86efac; --ok-bg: #12301c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+    --bg: #111418; --card: #1b2027; --text: #e8eaed; --muted: #9aa5b1;
+    --line: #2d343d; --accent: #f97316; --accent-text: #111418;
+    --bad: #fca5a5; --bad-bg: #3b1515; --warn: #fcd34d; --warn-bg: #3a2c0b;
+    --ok: #86efac; --ok-bg: #12301c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--line); }
+.brand { font-weight: 700; letter-spacing: .02em; }
+.brand span { font-weight: 400; color: var(--muted); margin-inline-start: 6px; }
+nav { display: flex; gap: 4px; padding: 8px 16px; overflow-x: auto;
+  background: var(--card); border-bottom: 1px solid var(--line); }
+nav button { border: 0; background: none; color: var(--muted); padding: 8px 12px;
+  border-radius: 8px; font: inherit; white-space: nowrap; }
+nav button.on { background: var(--bg); color: var(--text); font-weight: 600; }
+main { max-width: 760px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.35rem; margin: 4px 0 12px; }
+h2 { font-size: 1.05rem; margin: 18px 0 8px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px; margin-bottom: 10px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+.muted { color: var(--muted); font-size: .9rem; }
+label { display: block; font-size: .9rem; color: var(--muted); margin: 10px 0 4px; }
+input, select, textarea { width: 100%; font: inherit; padding: 11px 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text); }
+button.primary, button.secondary { font: inherit; font-weight: 600; padding: 12px 16px;
+  border-radius: 10px; border: 1px solid transparent; min-height: 46px; }
+button.primary { background: var(--accent); color: var(--accent-text); }
+button.secondary { background: var(--card); color: var(--text); border-color: var(--line); }
+button.link { background: none; border: 0; color: var(--accent); font: inherit; padding: 6px; }
+button:disabled { opacity: .5; }
+.list-item { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  width: 100%; text-align: start; font: inherit; color: inherit; cursor: pointer; }
+.big { font-size: 1.15rem; font-weight: 700; }
+.pill { display: inline-block; font-size: .78rem; padding: 2px 8px; border-radius: 99px;
+  background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+.msg { padding: 10px 12px; border-radius: 10px; margin: 8px 0; font-size: .93rem; }
+.msg.bad { background: var(--bad-bg); color: var(--bad); }
+.msg.warn { background: var(--warn-bg); color: var(--warn); }
+.msg.ok { background: var(--ok-bg); color: var(--ok); }
+.msg ul { margin: 4px 0 0; padding-inline-start: 18px; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; }
+dt { color: var(--muted); } dd { margin: 0; overflow-wrap: anywhere; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+#toast { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 480px;
+  margin: 0 auto; background: var(--text); color: var(--bg); padding: 12px 14px;
+  border-radius: 10px; text-align: center; }
+.login { max-width: 380px; margin: 10vh auto 0; }
+code { font-size: .85rem; }
+
+/* --- added with work orders and languages --- */
+:root { --urgent: #b91c1c; --high: #c2410c; }
+.wide { width: 100%; }
+select.auto { width: auto; }
+.row.tight { gap: 6px; }
+.small { font-size: .85rem; }
+.chev { font-size: 1.3rem; }
+[dir="rtl"] .chev { transform: scaleX(-1); }
+.clip { display: block; margin: 4px 0 2px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+select.lang { width: auto; padding: 6px 8px; font-size: .9rem; }
+.chips { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 12px; padding-bottom: 2px; }
+.chips button { font: inherit; font-size: .9rem; white-space: nowrap; padding: 7px 12px;
+  border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--muted); }
+.chips button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.pill.p-urgent { background: var(--bad-bg); color: var(--bad); border-color: transparent; font-weight: 600; }
+.pill.p-high { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.pill.st-complete, .pill.st-closed { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+.pill.st-cancelled { text-decoration: line-through; }
+.pill.st-in_progress { background: var(--text); color: var(--bg); border-color: transparent; }
+.pill.st-waiting_parts { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+button.linkish { font: inherit; font-size: .78rem; cursor: pointer; color: var(--accent); }
+.field { margin-bottom: 10px; }
+.field .lbl { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+[dir="rtl"] .field .lbl { text-transform: none; letter-spacing: 0; }
+.pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.line { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0;
+  border-bottom: 1px solid var(--line); }
+.line:last-of-type { border-bottom: 0; }
+.line.voided .grow > :first-child { text-decoration: line-through; color: var(--muted); }
+.warn-text { color: var(--warn); } .bad-text { color: var(--bad); }
+details { margin-top: 10px; }
+summary { cursor: pointer; color: var(--accent); font-weight: 600; padding: 6px 0; }
+blockquote { margin: 6px 0 4px; padding: 10px 12px; border-inline-start: 4px solid var(--accent);
+  background: var(--bg); border-radius: 6px; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 10px 0; }
+label.check { display: flex; align-items: center; gap: 6px; color: var(--text); margin: 0;
+  font-size: 1rem; }
+label.check input { width: 20px; height: 20px; }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px;
+  margin-bottom: 10px; }
+.photos figure { margin: 0; } .photos img { width: 100%; aspect-ratio: 1; object-fit: cover;
+  border-radius: 8px; background: var(--bg); }
+.photos figcaption { font-size: .78rem; color: var(--muted); }
+label.filebtn { display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  font-weight: 600; color: var(--text); padding: 12px 16px; border-radius: 10px;
+  border: 1px solid var(--line); min-height: 46px; margin: 0; font-size: 1rem; }
+.preview-bar { background: var(--warn-bg); color: var(--warn); text-align: center; font-size: .85rem;
+  padding: 6px 16px; }
+[lang="ur"] body { font-family: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Noto Naskh Arabic", system-ui, sans-serif; line-height: 1.9; }
+[lang="hi"] body { font-family: "Noto Sans Devanagari", system-ui, sans-serif; }
+/* Names, dates and numbers keep their own reading direction inside Urdu. */
+.muted, .pill, dd { unicode-bidi: plaintext; }
+.voidbox { padding: 6px 0 10px; }
+.quick { display: grid; gap: 8px; margin-top: 14px; }
+.quick button { text-align: start; font-weight: 400; }
+
+</style>
+<div class="preview-bar">PREVIEW · sample data · nothing is saved · reload to start over</div>
+<header id="top" hidden>
+  <div class="brand">DTR <span id="org-name"></span></div>
+  <div class="row tight"><span id="hdr-lang"></span>
+  <button id="signout" class="link">Sign out</button></div>
+</header>
+<nav id="tabs" hidden></nav>
+<main id="view"></main>
+<div id="toast" role="status" hidden></div>
+<script>window.DTR_LOCALES = {"en": {"_language": "English", "app.sign_out": "Sign out", "app.apex_console": "Apex console", "app.language": "Language", "app.loading": "Loading…", "app.something_wrong": "Something went wrong. Try again.", "app.fix_first": "Fix these first:", "app.check_these": "Worth a look:", "app.back": "Back", "app.save": "Save", "app.cancel": "Cancel", "app.saved": "Saved.", "app.choose": "Choose…", "app.none": "None", "app.by_at": "{name} · {when}", "app.preview_banner": "PREVIEW with sample data. Nothing here is real or saved.", "login.title": "Sign in to DTR", "login.email": "Email", "login.password": "Password", "login.button": "Sign in", "tab.workorders": "Work orders", "tab.units": "Units", "tab.people": "People", "tab.log": "Change log", "tab.companies": "Companies", "role.mechanic": "Mechanic", "role.shop_manager": "Shop manager", "role.fleet_manager": "Fleet manager", "role.admin": "Company admin", "role.platform_operator": "Apex operator", "type.power_unit": "Power unit", "type.trailer": "Trailer", "type.power_unit_long": "Power unit (truck/tractor)", "field.asset_id": "Unit", "field.asset_type": "Type", "field.unit_number": "Unit number", "field.vin": "VIN", "field.model_year": "Year", "field.make": "Make", "field.model": "Model", "field.plate": "Plate", "field.plate_state": "Plate state", "field.owner": "Who owns it?", "field.furnished_by": "Owner's name", "field.odometer": "Odometer", "field.engine_hours": "Engine hours", "field.notes": "Notes", "field.note": "Note", "field.complaint": "Complaint", "field.cause": "Cause", "field.correction": "Correction", "field.priority": "Priority", "field.category": "Category", "field.source": "Where it came from", "field.source_ref": "Reference (report or ticket #)", "field.hours": "Hours", "field.date": "Date", "field.tech": "Tech", "field.part_number": "Part number", "field.description": "Description", "field.qty": "Qty", "field.unit_cost": "Cost each", "field.vendor": "Vendor", "field.invoice_number": "Invoice #", "field.amount": "Amount", "field.reason": "Reason", "field.caption": "Caption", "field.name": "Name", "field.email": "Email", "field.role": "Role", "field.password": "Password", "field.company_name": "Company name", "field.admin_name": "Admin's name", "field.admin_email": "Admin's email", "field.admin_password": "Admin's starting password", "field.typed_name": "Your full name", "field.status": "Status", "units.title": "Units", "units.add": "Add unit", "units.import": "Import list", "units.search": "Search unit, VIN or plate", "units.all": "All", "units.power_units": "Power units", "units.trailers": "Trailers", "units.in_fleet": "In fleet", "units.left_fleet": "Left fleet", "units.count": "{n} units", "units.none": "No units yet.", "units.none_import": "Use Import list to load the fleet from a spreadsheet.", "units.no_make_year": "No make/year", "units.unit": "Unit {unit}", "units.edit": "Edit", "units.vin_missing": "Not entered", "units.company_owned": "Company-owned", "units.owned_by_company": "The company", "units.owned_by_other": "Someone else (leased / furnished)", "units.furnished_by": "Furnished by {name}", "units.odometer_value": "{n} mi ({name}, {when})", "units.hours_value": "{n} ({name}, {when})", "units.company": "Company", "units.leaving_title": "Leaving the fleet?", "units.leaving_help": "Sold, scrapped or returned. The unit and its records are kept, not deleted.", "units.leaving_placeholder": "e.g. Sold to dealer", "units.leaving_button": "Mark as left fleet", "units.leaving_confirm": "Mark unit {unit} as left the fleet?", "units.left_on": "Left fleet", "units.reason_first": "Enter a reason first.", "units.marked_left": "Unit marked as left the fleet.", "units.add_title": "Add a unit", "units.edit_title": "Edit unit {unit}", "units.save_changes": "Save changes", "units.added": "Unit added.", "units.odometer_miles": "Odometer (miles)", "units.work_history": "Work orders on this unit", "units.new_wo": "New work order for this unit", "import.title": "Import the fleet list", "import.help": "Save your fleet spreadsheet as CSV (in Excel: File → Save As → CSV). One row per truck or trailer. It needs a Unit column and a Type column (truck or trailer). These are read if present: VIN, Year, Make, Model, Plate, State, Owner, Odometer, Engine hours, Notes.", "import.nothing_saved_until": "Nothing is saved until every row checks out.", "import.check": "Check file", "import.ready": "Ready: {n} units ({p} power units, {t} trailers).", "import.cant_load": "This file can't be loaded yet.", "import.ignored": "These columns will be ignored: {cols}", "import.rows_to_fix": "Rows to fix", "import.rows_to_look": "Worth a look (won't stop the import)", "import.row": "Row {n}", "import.load": "Load {n} units", "import.loaded": "{n} units loaded.", "import.nothing_saved": "Nothing was saved.", "people.title": "People", "people.add_title": "Add a person", "people.email_help": "Email (they sign in with this)", "people.password_help": "Starting password (8+ characters; give it to them in person)", "people.add": "Add person", "people.added": "Person added.", "log.title": "Change log", "log.ok": "Log checks out: {n} entries, none altered.", "log.bad": "Log problem at entry {seq}: {why}", "log.action.org.created": "Company set up", "log.action.user.created": "Person added", "log.action.unit.created": "Unit added", "log.action.unit.edited": "Unit changed", "log.action.unit.retired": "Unit left fleet", "log.action.units.imported": "Fleet list imported", "log.action.wo.created": "Work order opened", "log.action.wo.edited": "Work order changed", "log.action.wo.status": "Work order status changed", "log.action.wo.assigned": "Techs assigned", "log.action.wo.labor": "Labor added", "log.action.wo.part": "Part added", "log.action.wo.vendor": "Outside work added", "log.action.wo.void": "Line voided", "log.action.wo.note": "Note added", "log.action.wo.photo": "Photo added", "log.action.wo.signed": "Work order signed off", "log.action.wo.closed": "Work order closed", "log.action.wo.cancelled": "Work order cancelled", "log.action.wo.amended": "Work order amended", "log.work_order": "Work order", "console.title": "Customer companies", "console.counts": "{units} units · {people} people", "console.none": "No companies yet.", "console.new_title": "Set up a new company", "console.create": "Create company", "console.created": "Company created.", "status.open": "Open", "status.in_progress": "In progress", "status.waiting_parts": "Waiting on parts", "status.complete": "Complete", "status.closed": "Closed", "status.cancelled": "Cancelled", "priority.urgent": "Urgent", "priority.high": "High", "priority.normal": "Normal", "priority.low": "Low", "category.engine": "Engine", "category.brakes": "Brakes", "category.tires_wheels": "Tires & wheels", "category.electrical": "Electrical", "category.lighting": "Lighting", "category.suspension_steering": "Suspension & steering", "category.drivetrain": "Drivetrain", "category.cooling": "Cooling", "category.fuel": "Fuel system", "category.exhaust_aftertreatment": "Exhaust & aftertreatment", "category.hvac": "HVAC", "category.body_frame": "Body & frame", "category.coupling": "Fifth wheel & coupling", "category.refrigeration": "Reefer unit", "category.pm_service": "PM service", "category.inspection": "Inspection", "category.other": "Other", "source.manual": "Entered by hand", "source.dvir_defect": "DVIR defect", "source.pm": "PM due", "source.breakdown": "Breakdown / road call", "source.roadside": "Roadside inspection", "source.inspection": "Annual / 90-day inspection", "wo.title": "Work orders", "wo.new": "New work order", "wo.number": "WO-{n}", "wo.filter.mine": "My jobs", "wo.filter.active": "Open", "wo.filter.complete": "To review", "wo.filter.closed": "Closed", "wo.filter.cancelled": "Cancelled", "wo.none": "No work orders here.", "wo.unassigned": "Not assigned", "wo.new_title": "New work order", "wo.complaint_help": "What's wrong, as reported", "wo.create": "Open work order", "wo.created": "Work order opened.", "wo.unit_line": "Unit {unit}", "wo.opened_by": "Opened by {name}, {when}", "wo.section.job": "The job", "wo.section.status": "Status", "wo.section.techs": "Techs", "wo.section.labor": "Labor", "wo.section.parts": "Parts", "wo.section.vendor": "Outside work", "wo.section.notes": "Notes", "wo.section.photos": "Photos", "wo.section.signoff": "Sign-off", "wo.section.amendments": "Amendments", "wo.section.history": "History", "wo.edit_job": "Edit job", "wo.not_entered": "Not entered yet", "wo.move.in_progress": "Start work", "wo.move.waiting_parts": "Waiting on parts", "wo.move.open": "Back to open", "wo.assign": "Assign", "wo.assigned_saved": "Techs assigned.", "wo.add_labor": "Add hours", "wo.add_part": "Add part", "wo.add_vendor": "Add outside work", "wo.add_note": "Add note", "wo.add_photo": "Add photo", "wo.photo_added": "Photo added.", "wo.uploading": "Uploading…", "wo.hours_value": "{n} h", "wo.total_hours": "Total hours: {n}", "wo.parts_total": "Parts: {amount}", "wo.vendor_total": "Outside work: {amount}", "wo.void": "Void", "wo.void_reason": "Why is this line being voided?", "wo.voided": "VOID: {reason} ({name})", "wo.amended_line": "Added after sign-off: {reason}", "wo.reason_signed": "This job is signed off, so say why this is being added:", "wo.signoff_statement_title": "By signing you state:", "wo.signoff.statement": "I did or supervised the work on this job, and it is complete as described in the correction above.", "wo.signoff_type_name": "Type your full name exactly as it appears on your account ({name}).", "wo.sign": "Sign off as complete", "wo.signed_by": "Signed off by {name}, {when}", "wo.signed_ok": "Signed off.", "wo.closed_by": "Closed by {name}, {when}", "wo.close": "Review done: close job", "wo.closed_ok": "Job closed.", "wo.cancel_job": "Cancel this job", "wo.cancel_help": "Only for a job that shouldn't exist, such as a duplicate.", "wo.cancel_reason": "Reason for cancelling", "wo.cancelled_by": "Cancelled by {name}, {when}: {reason}", "wo.cancel_confirm": "Cancel this work order?", "wo.cancelled_ok": "Job cancelled.", "wo.amend_title": "Correct a signed job", "wo.amend_help": "The original stays on record next to the correction.", "wo.amend_field": "What to correct", "wo.amend_value": "Correct value", "wo.amend": "Save correction", "wo.amended_ok": "Correction saved.", "wo.amendment_line": "{field}: “{before}” → “{after}” — {reason} ({name}, {when})", "wo.history_line": "{to} · {name}, {when}", "wo.only_shop": "Only the shop can add this.", "err.bad_login": "Email or password is wrong.", "err.account_off": "This account is switched off.", "err.sign_in_first": "Sign in first.", "err.session_expired": "Your sign-in has expired. Sign in again.", "err.password_short": "Password must be at least 8 characters.", "err.email_taken": "That email already has an account.", "err.operator_open_company": "Open a company from the console to see its people.", "err.cannot_add_role": "A {actor} can't add a {target}.", "err.operator_only": "Only Apex can do this.", "err.operator_read_only": "Apex can view this but not change it from here.", "err.role_cannot_edit_units": "Your role can't change units.", "err.no_such_unit": "No such unit.", "err.retire_reason_required": "Say why the unit is leaving the fleet.", "err.already_retired": "This unit is already out of the fleet.", "err.not_allowed": "Not allowed for this account.", "err.admin_only_log": "Only the company admin can read the log.", "err.check_field": "Check this field: {field}", "err.required": "{field} is required.", "err.not_a_number": "{field} must be a number.", "err.must_be_positive": "{field} must be more than zero.", "err.too_large": "{field} is too large (most is {max}).", "err.bad_choice": "Choose a {field} from the list.", "err.bad_date": "That date isn't valid.", "err.date_future": "That date is in the future.", "err.part_needs_name": "Enter a part number or a description.", "unit.err.type_required": "Say whether it's a power unit or a trailer.", "unit.err.number_required": "Unit number is required.", "unit.err.number_too_long": "Unit number is longer than 30 characters.", "unit.err.furnished_by_required": "This unit isn't owned by the company, so enter who furnishes it (owner's name).", "unit.err.exists": "Unit {unit} is already in DTR.", "unit.warn.trailer_hours": "Engine hours entered on a trailer. Fine for a reefer unit; otherwise check.", "unit.warn.no_make": "No make entered.", "unit.warn.no_year": "No year entered.", "vin.warn.none": "No VIN entered.", "vin.warn.short": "VIN is {n} characters, not 17. Fine for a pre-1981 unit; otherwise check the plate.", "vin.err.long": "VIN is {n} characters; a VIN has 17.", "vin.err.chars": "VIN has a character a VIN never uses (I, O and Q are never used).", "vin.warn.check_digit": "VIN check digit doesn't add up. Check it against the plate on the unit.", "year.err.nan": "Year '{value}' is not a number.", "year.err.range": "Year {year} is outside 1950 to {latest}.", "reading.err.nan": "{what} '{value}' is not a number.", "reading.err.negative": "{what} can't be negative.", "csv.err.unreadable": "The file isn't readable text. Save it as CSV.", "csv.err.empty": "The file is empty.", "csv.err.no_unit_column": "No unit number column found. Name a column 'Unit' or 'Unit Number'.", "csv.err.no_type_column": "No type column found. Add a 'Type' column saying truck or trailer for each row.", "csv.err.no_rows": "The file has headings but no units.", "csv.err.too_many": "The file has {n} rows; the limit is {limit}.", "csv.err.too_big": "The file is over 2 MB. A fleet list should be far smaller; is it the right file?", "csv.err.dup_row": "Unit {unit} is also on row {row}.", "csv.err.rows_bad": "{n} row(s) need fixing. Nothing was saved.", "wo.err.not_found": "No such work order.", "wo.err.need_unit": "Choose the unit this job is for.", "wo.err.unit_retired": "That unit has left the fleet.", "wo.err.need_complaint": "Enter the complaint: what's wrong.", "wo.err.signed_use_amend": "This job is signed off. Use a correction (amendment) instead.", "wo.err.bad_move": "The job can't move to that status from here.", "wo.err.not_open": "This job is no longer open.", "wo.err.bad_tech": "One of those people isn't a tech in this company.", "wo.err.changed_meanwhile": "Someone else changed this job just now. Reload and try again.", "wo.err.cancelled": "This job was cancelled.", "wo.err.cannot_amend": "Only the shop manager or the tech who signed can correct a signed job.", "wo.err.need_reason": "Give a reason.", "wo.err.own_labor_only": "You can log only your own hours.", "wo.err.own_lines_only": "You can void only lines you entered.", "wo.err.no_line": "That line isn't on this job, or it's already void.", "wo.err.too_many_photos": "A job can have at most {max} photos.", "wo.err.photo_type": "Photos must be JPEG, PNG or WebP.", "wo.err.photo_big": "That photo is over 3 MB.", "wo.err.cannot_sign": "Only a tech assigned to this job, or who logged hours on it, can sign it off.", "wo.err.need_correction": "Enter the correction (what was done) before signing off.", "wo.err.name_mismatch": "The name typed doesn't match your account name ({name}).", "wo.err.close_needs_complete": "Only a signed-off job can be closed.", "wo.err.amend_needs_signed": "Only a signed-off job is corrected this way. Edit an open job directly.", "wo.err.no_change": "That's the same as what's there now.", "wo.warn.no_labor": "No hours were logged on this job.", "wo.warn.no_cause": "No cause was entered."}, "es": {"_language": "Español", "app.sign_out": "Cerrar sesión", "app.apex_console": "Consola de Apex", "app.language": "Idioma", "app.loading": "Cargando…", "app.something_wrong": "Algo salió mal. Intente de nuevo.", "app.fix_first": "Corrija esto primero:", "app.check_these": "Vale la pena revisar:", "app.back": "Atrás", "app.save": "Guardar", "app.cancel": "Cancelar", "app.saved": "Guardado.", "app.choose": "Elegir…", "app.none": "Ninguno", "app.by_at": "{name} · {when}", "app.preview_banner": "VISTA PREVIA con datos de ejemplo. Nada aquí es real ni se guarda.", "login.title": "Iniciar sesión en DTR", "login.email": "Correo electrónico", "login.password": "Contraseña", "login.button": "Iniciar sesión", "tab.workorders": "Órdenes de trabajo", "tab.units": "Unidades", "tab.people": "Personal", "tab.log": "Registro de cambios", "tab.companies": "Compañías", "role.mechanic": "Mecánico", "role.shop_manager": "Gerente de taller", "role.fleet_manager": "Gerente de flota", "role.admin": "Administrador de la compañía", "role.platform_operator": "Operador de Apex", "type.power_unit": "Tractor", "type.trailer": "Tráiler", "type.power_unit_long": "Tractor (camión/tractocamión)", "field.asset_id": "Unidad", "field.asset_type": "Tipo", "field.unit_number": "Número de unidad", "field.vin": "VIN", "field.model_year": "Año", "field.make": "Marca", "field.model": "Modelo", "field.plate": "Placa", "field.plate_state": "Estado de la placa", "field.owner": "¿De quién es?", "field.furnished_by": "Nombre del dueño", "field.odometer": "Odómetro", "field.engine_hours": "Horas de motor", "field.notes": "Notas", "field.note": "Nota", "field.complaint": "Queja", "field.cause": "Causa", "field.correction": "Corrección", "field.priority": "Prioridad", "field.category": "Categoría", "field.source": "De dónde viene", "field.source_ref": "Referencia (n.º de reporte o boleta)", "field.hours": "Horas", "field.date": "Fecha", "field.tech": "Técnico", "field.part_number": "Número de parte", "field.description": "Descripción", "field.qty": "Cant.", "field.unit_cost": "Costo c/u", "field.vendor": "Proveedor", "field.invoice_number": "N.º de factura", "field.amount": "Monto", "field.reason": "Motivo", "field.caption": "Descripción de la foto", "field.name": "Nombre", "field.email": "Correo electrónico", "field.role": "Rol", "field.password": "Contraseña", "field.company_name": "Nombre de la compañía", "field.admin_name": "Nombre del administrador", "field.admin_email": "Correo del administrador", "field.admin_password": "Contraseña inicial del administrador", "field.typed_name": "Su nombre completo", "field.status": "Estado", "units.title": "Unidades", "units.add": "Agregar unidad", "units.import": "Importar lista", "units.search": "Buscar unidad, VIN o placa", "units.all": "Todas", "units.power_units": "Tractores", "units.trailers": "Tráileres", "units.in_fleet": "En la flota", "units.left_fleet": "Fuera de la flota", "units.count": "{n} unidades", "units.none": "Todavía no hay unidades.", "units.none_import": "Use Importar lista para cargar la flota desde una hoja de cálculo.", "units.no_make_year": "Sin marca/año", "units.unit": "Unidad {unit}", "units.edit": "Editar", "units.vin_missing": "No ingresado", "units.company_owned": "De la compañía", "units.owned_by_company": "La compañía", "units.owned_by_other": "Otra persona (arrendada / proporcionada)", "units.furnished_by": "Proporcionada por {name}", "units.odometer_value": "{n} mi ({name}, {when})", "units.hours_value": "{n} ({name}, {when})", "units.company": "Compañía", "units.leaving_title": "¿Sale de la flota?", "units.leaving_help": "Vendida, desechada o devuelta. La unidad y sus registros se conservan, no se borran.", "units.leaving_placeholder": "ej. Vendida al distribuidor", "units.leaving_button": "Marcar fuera de la flota", "units.leaving_confirm": "¿Marcar la unidad {unit} como fuera de la flota?", "units.left_on": "Salió de la flota", "units.reason_first": "Primero ingrese un motivo.", "units.marked_left": "Unidad marcada como fuera de la flota.", "units.add_title": "Agregar una unidad", "units.edit_title": "Editar unidad {unit}", "units.save_changes": "Guardar cambios", "units.added": "Unidad agregada.", "units.odometer_miles": "Odómetro (millas)", "units.work_history": "Órdenes de trabajo de esta unidad", "units.new_wo": "Nueva orden de trabajo para esta unidad", "import.title": "Importar la lista de la flota", "import.help": "Guarde su hoja de cálculo de la flota como CSV (en Excel: Archivo → Guardar como → CSV). Una fila por camión o tráiler. Necesita una columna Unit y una columna Type (truck o trailer). Estas columnas se leen si existen: VIN, Year, Make, Model, Plate, State, Owner, Odometer, Engine hours, Notes.", "import.nothing_saved_until": "No se guarda nada hasta que todas las filas estén correctas.", "import.check": "Revisar archivo", "import.ready": "Listo: {n} unidades ({p} tractores, {t} tráileres).", "import.cant_load": "Este archivo todavía no se puede cargar.", "import.ignored": "Estas columnas se ignorarán: {cols}", "import.rows_to_fix": "Filas por corregir", "import.rows_to_look": "Vale la pena revisar (no detiene la importación)", "import.row": "Fila {n}", "import.load": "Cargar {n} unidades", "import.loaded": "{n} unidades cargadas.", "import.nothing_saved": "No se guardó nada.", "people.title": "Personal", "people.add_title": "Agregar una persona", "people.email_help": "Correo electrónico (lo usa para iniciar sesión)", "people.password_help": "Contraseña inicial (8 caracteres o más; entréguesela en persona)", "people.add": "Agregar persona", "people.added": "Persona agregada.", "log.title": "Registro de cambios", "log.ok": "El registro está en orden: {n} entradas, ninguna alterada.", "log.bad": "Problema en el registro, entrada {seq}: {why}", "log.action.org.created": "Compañía creada", "log.action.user.created": "Persona agregada", "log.action.unit.created": "Unidad agregada", "log.action.unit.edited": "Unidad modificada", "log.action.unit.retired": "Unidad fuera de la flota", "log.action.units.imported": "Lista de la flota importada", "log.action.wo.created": "Orden de trabajo abierta", "log.action.wo.edited": "Orden de trabajo modificada", "log.action.wo.status": "Cambio de estado de la orden", "log.action.wo.assigned": "Técnicos asignados", "log.action.wo.labor": "Mano de obra agregada", "log.action.wo.part": "Parte agregada", "log.action.wo.vendor": "Trabajo externo agregado", "log.action.wo.void": "Línea anulada", "log.action.wo.note": "Nota agregada", "log.action.wo.photo": "Foto agregada", "log.action.wo.signed": "Orden de trabajo firmada", "log.action.wo.closed": "Orden de trabajo cerrada", "log.action.wo.cancelled": "Orden de trabajo cancelada", "log.action.wo.amended": "Orden de trabajo corregida", "log.work_order": "Orden de trabajo", "console.title": "Compañías clientes", "console.counts": "{units} unidades · {people} personas", "console.none": "Todavía no hay compañías.", "console.new_title": "Dar de alta una compañía", "console.create": "Crear compañía", "console.created": "Compañía creada.", "status.open": "Abierta", "status.in_progress": "En proceso", "status.waiting_parts": "Esperando partes", "status.complete": "Terminada", "status.closed": "Cerrada", "status.cancelled": "Cancelada", "priority.urgent": "Urgente", "priority.high": "Alta", "priority.normal": "Normal", "priority.low": "Baja", "category.engine": "Motor", "category.brakes": "Frenos", "category.tires_wheels": "Llantas y rines", "category.electrical": "Eléctrico", "category.lighting": "Luces", "category.suspension_steering": "Suspensión y dirección", "category.drivetrain": "Tren motriz", "category.cooling": "Enfriamiento", "category.fuel": "Combustible", "category.exhaust_aftertreatment": "Escape y postratamiento", "category.hvac": "HVAC", "category.body_frame": "Carrocería y chasis", "category.coupling": "Quinta rueda y enganche", "category.refrigeration": "Unidad de refrigeración", "category.pm_service": "Servicio PM", "category.inspection": "Inspección", "category.other": "Otro", "source.manual": "Ingresado a mano", "source.dvir_defect": "Defecto en DVIR", "source.pm": "PM pendiente", "source.breakdown": "Descompostura / servicio en carretera", "source.roadside": "Inspección en carretera", "source.inspection": "Inspección anual / de 90 días", "wo.title": "Órdenes de trabajo", "wo.new": "Nueva orden de trabajo", "wo.number": "WO-{n}", "wo.filter.mine": "Mis trabajos", "wo.filter.active": "Abiertas", "wo.filter.complete": "Por revisar", "wo.filter.closed": "Cerradas", "wo.filter.cancelled": "Canceladas", "wo.none": "No hay órdenes de trabajo aquí.", "wo.unassigned": "Sin asignar", "wo.new_title": "Nueva orden de trabajo", "wo.complaint_help": "Qué falla, según se reportó", "wo.create": "Abrir orden de trabajo", "wo.created": "Orden de trabajo abierta.", "wo.unit_line": "Unidad {unit}", "wo.opened_by": "Abierta por {name}, {when}", "wo.section.job": "El trabajo", "wo.section.status": "Estado", "wo.section.techs": "Técnicos", "wo.section.labor": "Mano de obra", "wo.section.parts": "Partes", "wo.section.vendor": "Trabajo externo", "wo.section.notes": "Notas", "wo.section.photos": "Fotos", "wo.section.signoff": "Firma", "wo.section.amendments": "Correcciones", "wo.section.history": "Historial", "wo.edit_job": "Editar trabajo", "wo.not_entered": "Todavía no ingresado", "wo.move.in_progress": "Empezar trabajo", "wo.move.waiting_parts": "Esperando partes", "wo.move.open": "Regresar a abierta", "wo.assign": "Asignar", "wo.assigned_saved": "Técnicos asignados.", "wo.add_labor": "Agregar horas", "wo.add_part": "Agregar parte", "wo.add_vendor": "Agregar trabajo externo", "wo.add_note": "Agregar nota", "wo.add_photo": "Agregar foto", "wo.photo_added": "Foto agregada.", "wo.uploading": "Subiendo…", "wo.hours_value": "{n} h", "wo.total_hours": "Horas totales: {n}", "wo.parts_total": "Partes: {amount}", "wo.vendor_total": "Trabajo externo: {amount}", "wo.void": "Anular", "wo.void_reason": "¿Por qué se anula esta línea?", "wo.voided": "ANULADA: {reason} ({name})", "wo.amended_line": "Agregado después de la firma: {reason}", "wo.reason_signed": "Este trabajo ya está firmado; indique por qué se agrega esto:", "wo.signoff_statement_title": "Al firmar, usted declara:", "wo.signoff.statement": "Yo realicé o supervisé el trabajo de esta orden, y está completo tal como se describe en la corrección de arriba.", "wo.signoff_type_name": "Escriba su nombre completo exactamente como aparece en su cuenta ({name}).", "wo.sign": "Firmar como terminado", "wo.signed_by": "Firmado por {name}, {when}", "wo.signed_ok": "Firmado.", "wo.closed_by": "Cerrado por {name}, {when}", "wo.close": "Revisión lista: cerrar trabajo", "wo.closed_ok": "Trabajo cerrado.", "wo.cancel_job": "Cancelar este trabajo", "wo.cancel_help": "Solo para un trabajo que no debería existir, como uno duplicado.", "wo.cancel_reason": "Motivo de la cancelación", "wo.cancelled_by": "Cancelado por {name}, {when}: {reason}", "wo.cancel_confirm": "¿Cancelar esta orden de trabajo?", "wo.cancelled_ok": "Trabajo cancelado.", "wo.amend_title": "Corregir un trabajo firmado", "wo.amend_help": "El original queda registrado junto a la corrección.", "wo.amend_field": "Qué corregir", "wo.amend_value": "Valor correcto", "wo.amend": "Guardar corrección", "wo.amended_ok": "Corrección guardada.", "wo.amendment_line": "{field}: “{before}” → “{after}” — {reason} ({name}, {when})", "wo.history_line": "{to} · {name}, {when}", "wo.only_shop": "Solo el taller puede agregar esto.", "err.bad_login": "El correo o la contraseña no son correctos.", "err.account_off": "Esta cuenta está desactivada.", "err.sign_in_first": "Primero inicie sesión.", "err.session_expired": "Su sesión venció. Inicie sesión de nuevo.", "err.password_short": "La contraseña debe tener al menos 8 caracteres.", "err.email_taken": "Ese correo ya tiene una cuenta.", "err.operator_open_company": "Abra una compañía desde la consola para ver su personal.", "err.cannot_add_role": "El rol {actor} no puede agregar a un usuario con rol {target}.", "err.operator_only": "Solo Apex puede hacer esto.", "err.operator_read_only": "Apex puede ver esto, pero no cambiarlo desde aquí.", "err.role_cannot_edit_units": "Su rol no puede cambiar unidades.", "err.no_such_unit": "Esa unidad no existe.", "err.retire_reason_required": "Indique por qué la unidad sale de la flota.", "err.already_retired": "Esta unidad ya está fuera de la flota.", "err.not_allowed": "No permitido para esta cuenta.", "err.admin_only_log": "Solo el administrador de la compañía puede ver el registro.", "err.check_field": "Revise este campo: {field}", "err.required": "{field} es obligatorio.", "err.not_a_number": "{field} debe ser un número.", "err.must_be_positive": "{field} debe ser mayor que cero.", "err.too_large": "{field} es demasiado grande (máximo {max}).", "err.bad_choice": "Elija una opción de la lista para {field}.", "err.bad_date": "Esa fecha no es válida.", "err.date_future": "Esa fecha está en el futuro.", "err.part_needs_name": "Ingrese un número de parte o una descripción.", "unit.err.type_required": "Indique si es tractor o tráiler.", "unit.err.number_required": "El número de unidad es obligatorio.", "unit.err.number_too_long": "El número de unidad tiene más de 30 caracteres.", "unit.err.furnished_by_required": "Esta unidad no es de la compañía; ingrese quién la proporciona (nombre del dueño).", "unit.err.exists": "La unidad {unit} ya está en DTR.", "unit.warn.trailer_hours": "Se ingresaron horas de motor en un tráiler. Está bien si tiene unidad de refrigeración; si no, revise.", "unit.warn.no_make": "No se ingresó la marca.", "unit.warn.no_year": "No se ingresó el año.", "vin.warn.none": "No se ingresó el VIN.", "vin.warn.short": "El VIN tiene {n} caracteres, no 17. Está bien para una unidad anterior a 1981; si no, revise la placa.", "vin.err.long": "El VIN tiene {n} caracteres; un VIN tiene 17.", "vin.err.chars": "El VIN tiene un carácter que un VIN nunca usa (nunca se usan I, O ni Q).", "vin.warn.check_digit": "El dígito verificador del VIN no cuadra. Compárelo con la placa de la unidad.", "year.err.nan": "El año '{value}' no es un número.", "year.err.range": "El año {year} está fuera del rango de 1950 a {latest}.", "reading.err.nan": "{what} '{value}' no es un número.", "reading.err.negative": "{what} no puede ser negativo.", "csv.err.unreadable": "El archivo no es texto legible. Guárdelo como CSV.", "csv.err.empty": "El archivo está vacío.", "csv.err.no_unit_column": "No se encontró una columna de número de unidad. Nombre una columna 'Unit' o 'Unit Number'.", "csv.err.no_type_column": "No se encontró una columna de tipo. Agregue una columna 'Type' que diga truck o trailer en cada fila.", "csv.err.no_rows": "El archivo tiene encabezados pero no tiene unidades.", "csv.err.too_many": "El archivo tiene {n} filas; el límite es {limit}.", "csv.err.too_big": "El archivo pesa más de 2 MB. Una lista de flota debería ser mucho más pequeña; ¿es el archivo correcto?", "csv.err.dup_row": "La unidad {unit} también está en la fila {row}.", "csv.err.rows_bad": "{n} fila(s) necesitan corrección. No se guardó nada.", "wo.err.not_found": "Esa orden de trabajo no existe.", "wo.err.need_unit": "Elija la unidad para este trabajo.", "wo.err.unit_retired": "Esa unidad ya salió de la flota.", "wo.err.need_complaint": "Ingrese la queja: qué falla.", "wo.err.signed_use_amend": "Este trabajo ya está firmado. Use una corrección en su lugar.", "wo.err.bad_move": "El trabajo no puede pasar a ese estado desde aquí.", "wo.err.not_open": "Este trabajo ya no está abierto.", "wo.err.bad_tech": "Una de esas personas no es técnico de esta compañía.", "wo.err.changed_meanwhile": "Alguien más acaba de cambiar este trabajo. Vuelva a cargar e intente de nuevo.", "wo.err.cancelled": "Este trabajo fue cancelado.", "wo.err.cannot_amend": "Solo el gerente de taller o el técnico que firmó puede corregir un trabajo firmado.", "wo.err.need_reason": "Indique un motivo.", "wo.err.own_labor_only": "Solo puede registrar sus propias horas.", "wo.err.own_lines_only": "Solo puede anular las líneas que usted ingresó.", "wo.err.no_line": "Esa línea no está en este trabajo o ya está anulada.", "wo.err.too_many_photos": "Un trabajo puede tener máximo {max} fotos.", "wo.err.photo_type": "Las fotos deben ser JPEG, PNG o WebP.", "wo.err.photo_big": "Esa foto pesa más de 3 MB.", "wo.err.cannot_sign": "Solo un técnico asignado a este trabajo, o que registró horas en él, puede firmarlo.", "wo.err.need_correction": "Ingrese la corrección (lo que se hizo) antes de firmar.", "wo.err.name_mismatch": "El nombre escrito no coincide con el nombre de su cuenta ({name}).", "wo.err.close_needs_complete": "Solo se puede cerrar un trabajo firmado.", "wo.err.amend_needs_signed": "Solo un trabajo firmado se corrige de esta forma. Un trabajo abierto se edita directamente.", "wo.err.no_change": "Es igual a lo que ya está.", "wo.warn.no_labor": "No se registraron horas en este trabajo.", "wo.warn.no_cause": "No se ingresó la causa."}, "hi": {"_language": "हिन्दी", "app.sign_out": "साइन आउट", "app.apex_console": "Apex कंसोल", "app.language": "भाषा", "app.loading": "लोड हो रहा है…", "app.something_wrong": "कुछ गड़बड़ हो गई। फिर से कोशिश करें।", "app.fix_first": "पहले इन्हें ठीक करें:", "app.check_these": "एक बार देख लें:", "app.back": "वापस", "app.save": "सेव करें", "app.cancel": "कैंसल", "app.saved": "सेव हो गया।", "app.choose": "चुनें…", "app.none": "कोई नहीं", "app.by_at": "{name} · {when}", "app.preview_banner": "प्रीव्यू, सैंपल डेटा के साथ। यहाँ कुछ भी असली नहीं है और कुछ सेव नहीं होता।", "login.title": "DTR में साइन इन करें", "login.email": "ईमेल", "login.password": "पासवर्ड", "login.button": "साइन इन", "tab.workorders": "वर्क ऑर्डर", "tab.units": "यूनिट", "tab.people": "लोग", "tab.log": "बदलाव लॉग", "tab.companies": "कंपनियाँ", "role.mechanic": "मैकेनिक", "role.shop_manager": "शॉप मैनेजर", "role.fleet_manager": "फ्लीट मैनेजर", "role.admin": "कंपनी एडमिन", "role.platform_operator": "Apex ऑपरेटर", "type.power_unit": "पावर यूनिट", "type.trailer": "ट्रेलर", "type.power_unit_long": "पावर यूनिट (ट्रक/ट्रैक्टर)", "field.asset_id": "यूनिट", "field.asset_type": "टाइप", "field.unit_number": "यूनिट नंबर", "field.vin": "VIN", "field.model_year": "साल", "field.make": "मेक (कंपनी)", "field.model": "मॉडल", "field.plate": "प्लेट", "field.plate_state": "प्लेट का स्टेट", "field.owner": "मालिक कौन है?", "field.furnished_by": "मालिक का नाम", "field.odometer": "ओडोमीटर", "field.engine_hours": "इंजन घंटे", "field.notes": "नोट्स", "field.note": "नोट", "field.complaint": "शिकायत", "field.cause": "वजह", "field.correction": "करेक्शन (क्या ठीक किया)", "field.priority": "प्रायोरिटी", "field.category": "कैटेगरी", "field.source": "कहाँ से आया", "field.source_ref": "रेफरेंस (रिपोर्ट या टिकट #)", "field.hours": "घंटे", "field.date": "तारीख", "field.tech": "टेक", "field.part_number": "पार्ट नंबर", "field.description": "विवरण", "field.qty": "मात्रा", "field.unit_cost": "एक का दाम", "field.vendor": "वेंडर", "field.invoice_number": "इनवॉइस #", "field.amount": "रकम", "field.reason": "वजह", "field.caption": "कैप्शन", "field.name": "नाम", "field.email": "ईमेल", "field.role": "रोल", "field.password": "पासवर्ड", "field.company_name": "कंपनी का नाम", "field.admin_name": "एडमिन का नाम", "field.admin_email": "एडमिन का ईमेल", "field.admin_password": "एडमिन का शुरुआती पासवर्ड", "field.typed_name": "आपका पूरा नाम", "field.status": "स्टेटस", "units.title": "यूनिट", "units.add": "यूनिट जोड़ें", "units.import": "लिस्ट इम्पोर्ट करें", "units.search": "यूनिट, VIN या प्लेट से खोजें", "units.all": "सभी", "units.power_units": "पावर यूनिट", "units.trailers": "ट्रेलर", "units.in_fleet": "फ्लीट में", "units.left_fleet": "फ्लीट से बाहर", "units.count": "{n} यूनिट", "units.none": "अभी कोई यूनिट नहीं है।", "units.none_import": "स्प्रेडशीट से फ्लीट लोड करने के लिए \"लिस्ट इम्पोर्ट करें\" दबाएँ।", "units.no_make_year": "मेक/साल नहीं", "units.unit": "यूनिट {unit}", "units.edit": "एडिट", "units.vin_missing": "भरा नहीं गया", "units.company_owned": "कंपनी का अपना", "units.owned_by_company": "कंपनी", "units.owned_by_other": "कोई और (लीज़ / किसी और का दिया हुआ)", "units.furnished_by": "{name} का दिया हुआ", "units.odometer_value": "{n} मील ({name}, {when})", "units.hours_value": "{n} ({name}, {when})", "units.company": "कंपनी", "units.leaving_title": "फ्लीट से हटा रहे हैं?", "units.leaving_help": "बेच दिया, कबाड़ में गया या वापस कर दिया। यूनिट और उसके रिकॉर्ड रखे जाते हैं, डिलीट नहीं होते।", "units.leaving_placeholder": "जैसे: डीलर को बेच दिया", "units.leaving_button": "फ्लीट से बाहर मार्क करें", "units.leaving_confirm": "यूनिट {unit} को फ्लीट से बाहर मार्क करें?", "units.left_on": "फ्लीट से बाहर", "units.reason_first": "पहले वजह लिखें।", "units.marked_left": "यूनिट फ्लीट से बाहर मार्क हो गया।", "units.add_title": "यूनिट जोड़ें", "units.edit_title": "यूनिट {unit} एडिट करें", "units.save_changes": "बदलाव सेव करें", "units.added": "यूनिट जुड़ गया।", "units.odometer_miles": "ओडोमीटर (मील)", "units.work_history": "इस यूनिट के वर्क ऑर्डर", "units.new_wo": "इस यूनिट का नया वर्क ऑर्डर", "import.title": "फ्लीट लिस्ट इम्पोर्ट करें", "import.help": "अपनी फ्लीट स्प्रेडशीट को CSV में सेव करें (Excel में: File → Save As → CSV)। हर ट्रक या ट्रेलर की एक लाइन (row)। इसमें एक Unit कॉलम और एक Type कॉलम (truck या trailer) होना ज़रूरी है। ये कॉलम हों तो पढ़े जाएँगे: VIN, Year, Make, Model, Plate, State, Owner, Odometer, Engine hours, Notes।", "import.nothing_saved_until": "जब तक हर लाइन सही नहीं निकलती, कुछ भी सेव नहीं होगा।", "import.check": "फ़ाइल चेक करें", "import.ready": "तैयार: {n} यूनिट ({p} पावर यूनिट, {t} ट्रेलर)।", "import.cant_load": "यह फ़ाइल अभी लोड नहीं हो सकती।", "import.ignored": "ये कॉलम छोड़ दिए जाएँगे: {cols}", "import.rows_to_fix": "ठीक करने वाली लाइनें", "import.rows_to_look": "एक बार देख लें (इम्पोर्ट नहीं रुकेगा)", "import.row": "लाइन {n}", "import.load": "{n} यूनिट लोड करें", "import.loaded": "{n} यूनिट लोड हो गए।", "import.nothing_saved": "कुछ भी सेव नहीं हुआ।", "people.title": "लोग", "people.add_title": "नया व्यक्ति जोड़ें", "people.email_help": "ईमेल (इसी से साइन इन करेंगे)", "people.password_help": "शुरुआती पासवर्ड (कम से कम 8 अक्षर; उन्हें खुद मिलकर दें)", "people.add": "व्यक्ति जोड़ें", "people.added": "व्यक्ति जुड़ गया।", "log.title": "बदलाव लॉग", "log.ok": "लॉग सही है: {n} एंट्री, किसी में छेड़छाड़ नहीं।", "log.bad": "लॉग में एंट्री {seq} पर गड़बड़: {why}", "log.action.org.created": "कंपनी सेट अप हुई", "log.action.user.created": "व्यक्ति जोड़ा गया", "log.action.unit.created": "यूनिट जोड़ा गया", "log.action.unit.edited": "यूनिट बदला गया", "log.action.unit.retired": "यूनिट फ्लीट से बाहर", "log.action.units.imported": "फ्लीट लिस्ट इम्पोर्ट हुई", "log.action.wo.created": "वर्क ऑर्डर खुला", "log.action.wo.edited": "वर्क ऑर्डर बदला गया", "log.action.wo.status": "वर्क ऑर्डर का स्टेटस बदला", "log.action.wo.assigned": "टेक असाइन हुए", "log.action.wo.labor": "लेबर जोड़ी गई", "log.action.wo.part": "पार्ट जोड़ा गया", "log.action.wo.vendor": "बाहर का काम जोड़ा गया", "log.action.wo.void": "लाइन रद्द (void) की गई", "log.action.wo.note": "नोट जोड़ा गया", "log.action.wo.photo": "फोटो जोड़ी गई", "log.action.wo.signed": "वर्क ऑर्डर साइन-ऑफ हुआ", "log.action.wo.closed": "वर्क ऑर्डर बंद हुआ", "log.action.wo.cancelled": "वर्क ऑर्डर कैंसल हुआ", "log.action.wo.amended": "वर्क ऑर्डर में सुधार हुआ", "log.work_order": "वर्क ऑर्डर", "console.title": "ग्राहक कंपनियाँ", "console.counts": "{units} यूनिट · {people} लोग", "console.none": "अभी कोई कंपनी नहीं है।", "console.new_title": "नई कंपनी सेट अप करें", "console.create": "कंपनी बनाएँ", "console.created": "कंपनी बन गई।", "status.open": "खुला", "status.in_progress": "काम चालू", "status.waiting_parts": "पार्ट्स का इंतज़ार", "status.complete": "पूरा", "status.closed": "बंद", "status.cancelled": "कैंसल", "priority.urgent": "अर्जेंट", "priority.high": "ज़्यादा", "priority.normal": "नॉर्मल", "priority.low": "कम", "category.engine": "इंजन", "category.brakes": "ब्रेक", "category.tires_wheels": "टायर और व्हील", "category.electrical": "इलेक्ट्रिकल", "category.lighting": "लाइटें", "category.suspension_steering": "सस्पेंशन और स्टीयरिंग", "category.drivetrain": "ड्राइवट्रेन", "category.cooling": "कूलिंग", "category.fuel": "फ्यूल सिस्टम", "category.exhaust_aftertreatment": "एग्ज़ॉस्ट और आफ्टरट्रीटमेंट", "category.hvac": "HVAC", "category.body_frame": "बॉडी और फ्रेम", "category.coupling": "फिफ्थ व्हील और कपलिंग", "category.refrigeration": "रीफर यूनिट", "category.pm_service": "PM सर्विस", "category.inspection": "इंस्पेक्शन", "category.other": "दूसरा", "source.manual": "हाथ से भरा", "source.dvir_defect": "DVIR खराबी", "source.pm": "PM ड्यू", "source.breakdown": "ब्रेकडाउन / रोड कॉल", "source.roadside": "रोडसाइड इंस्पेक्शन", "source.inspection": "सालाना / 90-दिन इंस्पेक्शन", "wo.title": "वर्क ऑर्डर", "wo.new": "नया वर्क ऑर्डर", "wo.number": "WO-{n}", "wo.filter.mine": "मेरे जॉब", "wo.filter.active": "खुले", "wo.filter.complete": "रिव्यू के लिए", "wo.filter.closed": "बंद", "wo.filter.cancelled": "कैंसल", "wo.none": "यहाँ कोई वर्क ऑर्डर नहीं है।", "wo.unassigned": "असाइन नहीं", "wo.new_title": "नया वर्क ऑर्डर", "wo.complaint_help": "क्या खराबी है, जैसा बताया गया", "wo.create": "वर्क ऑर्डर खोलें", "wo.created": "वर्क ऑर्डर खुल गया।", "wo.unit_line": "यूनिट {unit}", "wo.opened_by": "{name} ने खोला, {when}", "wo.section.job": "जॉब", "wo.section.status": "स्टेटस", "wo.section.techs": "टेक", "wo.section.labor": "लेबर", "wo.section.parts": "पार्ट्स", "wo.section.vendor": "बाहर का काम", "wo.section.notes": "नोट्स", "wo.section.photos": "फोटो", "wo.section.signoff": "साइन-ऑफ", "wo.section.amendments": "सुधार", "wo.section.history": "हिस्ट्री", "wo.edit_job": "जॉब एडिट करें", "wo.not_entered": "अभी भरा नहीं गया", "wo.move.in_progress": "काम शुरू करें", "wo.move.waiting_parts": "पार्ट्स का इंतज़ार", "wo.move.open": "वापस खुले में", "wo.assign": "असाइन करें", "wo.assigned_saved": "टेक असाइन हो गए।", "wo.add_labor": "घंटे जोड़ें", "wo.add_part": "पार्ट जोड़ें", "wo.add_vendor": "बाहर का काम जोड़ें", "wo.add_note": "नोट जोड़ें", "wo.add_photo": "फोटो जोड़ें", "wo.photo_added": "फोटो जुड़ गई।", "wo.uploading": "अपलोड हो रहा है…", "wo.hours_value": "{n} घंटे", "wo.total_hours": "कुल घंटे: {n}", "wo.parts_total": "पार्ट्स: {amount}", "wo.vendor_total": "बाहर का काम: {amount}", "wo.void": "रद्द (void)", "wo.void_reason": "यह लाइन रद्द क्यों की जा रही है?", "wo.voided": "रद्द: {reason} ({name})", "wo.amended_line": "साइन-ऑफ के बाद जोड़ा गया: {reason}", "wo.reason_signed": "यह जॉब साइन-ऑफ हो चुका है, इसलिए बताएँ कि यह क्यों जोड़ा जा रहा है:", "wo.signoff_statement_title": "साइन करके आप यह कह रहे हैं:", "wo.signoff.statement": "इस जॉब का काम मैंने खुद किया है या मेरी देखरेख में हुआ है, और यह ऊपर करेक्शन में लिखे अनुसार पूरा हो चुका है।", "wo.signoff_type_name": "अपना पूरा नाम ठीक वैसा ही लिखें जैसा आपके अकाउंट में है ({name})।", "wo.sign": "पूरा मानकर साइन-ऑफ करें", "wo.signed_by": "{name} ने साइन-ऑफ किया, {when}", "wo.signed_ok": "साइन-ऑफ हो गया।", "wo.closed_by": "{name} ने बंद किया, {when}", "wo.close": "रिव्यू हो गया: जॉब बंद करें", "wo.closed_ok": "जॉब बंद हो गया।", "wo.cancel_job": "यह जॉब कैंसल करें", "wo.cancel_help": "सिर्फ़ उस जॉब के लिए जो बनना ही नहीं चाहिए था, जैसे डुप्लिकेट।", "wo.cancel_reason": "कैंसल करने की वजह", "wo.cancelled_by": "{name} ने कैंसल किया, {when}: {reason}", "wo.cancel_confirm": "यह वर्क ऑर्डर कैंसल करें?", "wo.cancelled_ok": "जॉब कैंसल हो गया।", "wo.amend_title": "साइन हुए जॉब में सुधार करें", "wo.amend_help": "पुरानी एंट्री सुधार के साथ रिकॉर्ड में बनी रहती है।", "wo.amend_field": "क्या सुधारना है", "wo.amend_value": "सही वैल्यू", "wo.amend": "सुधार सेव करें", "wo.amended_ok": "सुधार सेव हो गया।", "wo.amendment_line": "{field}: “{before}” → “{after}” — {reason} ({name}, {when})", "wo.history_line": "{to} · {name}, {when}", "wo.only_shop": "इसे सिर्फ़ शॉप जोड़ सकती है।", "err.bad_login": "ईमेल या पासवर्ड गलत है।", "err.account_off": "यह अकाउंट बंद किया हुआ है।", "err.sign_in_first": "पहले साइन इन करें।", "err.session_expired": "आपका साइन-इन खत्म हो गया है। फिर से साइन इन करें।", "err.password_short": "पासवर्ड कम से कम 8 अक्षर का होना चाहिए।", "err.email_taken": "इस ईमेल का अकाउंट पहले से है।", "err.operator_open_company": "किसी कंपनी के लोग देखने के लिए कंसोल से वह कंपनी खोलें।", "err.cannot_add_role": "{actor} किसी {target} को नहीं जोड़ सकता।", "err.operator_only": "यह सिर्फ़ Apex कर सकता है।", "err.operator_read_only": "Apex इसे देख सकता है, लेकिन यहाँ से बदल नहीं सकता।", "err.role_cannot_edit_units": "आपका रोल यूनिट नहीं बदल सकता।", "err.no_such_unit": "ऐसा कोई यूनिट नहीं है।", "err.retire_reason_required": "बताएँ कि यूनिट फ्लीट से क्यों हट रहा है।", "err.already_retired": "यह यूनिट पहले से फ्लीट से बाहर है।", "err.not_allowed": "इस अकाउंट को इसकी इजाज़त नहीं है।", "err.admin_only_log": "लॉग सिर्फ़ कंपनी एडमिन देख सकता है।", "err.check_field": "यह फ़ील्ड चेक करें: {field}", "err.required": "{field} भरना ज़रूरी है।", "err.not_a_number": "{field} नंबर होना चाहिए।", "err.must_be_positive": "{field} ज़ीरो से ज़्यादा होना चाहिए।", "err.too_large": "{field} बहुत ज़्यादा है (ज़्यादा से ज़्यादा {max})।", "err.bad_choice": "लिस्ट में से {field} चुनें।", "err.bad_date": "यह तारीख सही नहीं है।", "err.date_future": "यह तारीख आगे (भविष्य) की है।", "err.part_needs_name": "पार्ट नंबर या विवरण लिखें।", "unit.err.type_required": "बताएँ कि यह पावर यूनिट है या ट्रेलर।", "unit.err.number_required": "यूनिट नंबर ज़रूरी है।", "unit.err.number_too_long": "यूनिट नंबर 30 अक्षरों से लंबा है।", "unit.err.furnished_by_required": "यह यूनिट कंपनी का नहीं है, इसलिए लिखें कि यह किसने दिया है (मालिक का नाम)।", "unit.err.exists": "यूनिट {unit} पहले से DTR में है।", "unit.warn.trailer_hours": "ट्रेलर पर इंजन घंटे भरे गए हैं। रीफर यूनिट हो तो ठीक है; नहीं तो चेक करें।", "unit.warn.no_make": "मेक नहीं भरा गया।", "unit.warn.no_year": "साल नहीं भरा गया।", "vin.warn.none": "VIN नहीं भरा गया।", "vin.warn.short": "VIN {n} अक्षर का है, 17 नहीं। 1981 से पहले का यूनिट हो तो ठीक है; नहीं तो प्लेट से मिलाकर देखें।", "vin.err.long": "VIN {n} अक्षर का है; VIN में 17 अक्षर होते हैं।", "vin.err.chars": "VIN में ऐसा अक्षर है जो VIN में कभी नहीं आता (I, O और Q कभी नहीं आते)।", "vin.warn.check_digit": "VIN का चेक डिजिट मेल नहीं खा रहा। यूनिट पर लगी प्लेट से मिलाकर देखें।", "year.err.nan": "साल '{value}' नंबर नहीं है।", "year.err.range": "साल {year} 1950 से {latest} के बीच नहीं है।", "reading.err.nan": "{what} '{value}' नंबर नहीं है।", "reading.err.negative": "{what} माइनस में नहीं हो सकता।", "csv.err.unreadable": "फ़ाइल पढ़ी नहीं जा रही। इसे CSV में सेव करें।", "csv.err.empty": "फ़ाइल खाली है।", "csv.err.no_unit_column": "यूनिट नंबर का कॉलम नहीं मिला। किसी कॉलम का नाम 'Unit' या 'Unit Number' रखें।", "csv.err.no_type_column": "टाइप का कॉलम नहीं मिला। एक 'Type' कॉलम जोड़ें जिसमें हर लाइन के लिए truck या trailer लिखा हो।", "csv.err.no_rows": "फ़ाइल में हेडिंग हैं पर कोई यूनिट नहीं है।", "csv.err.too_many": "फ़ाइल में {n} लाइनें हैं; लिमिट {limit} है।", "csv.err.too_big": "फ़ाइल 2 MB से बड़ी है। फ्लीट लिस्ट इससे बहुत छोटी होनी चाहिए; क्या यह सही फ़ाइल है?", "csv.err.dup_row": "यूनिट {unit} लाइन {row} पर भी है।", "csv.err.rows_bad": "{n} लाइन(ें) ठीक करनी हैं। कुछ भी सेव नहीं हुआ।", "wo.err.not_found": "ऐसा कोई वर्क ऑर्डर नहीं है।", "wo.err.need_unit": "यह जॉब किस यूनिट का है, चुनें।", "wo.err.unit_retired": "वह यूनिट फ्लीट से बाहर हो चुका है।", "wo.err.need_complaint": "शिकायत लिखें: क्या खराबी है।", "wo.err.signed_use_amend": "यह जॉब साइन-ऑफ हो चुका है। इसकी जगह सुधार (amendment) करें।", "wo.err.bad_move": "यहाँ से जॉब उस स्टेटस में नहीं जा सकता।", "wo.err.not_open": "यह जॉब अब खुला नहीं है।", "wo.err.bad_tech": "इनमें से कोई एक व्यक्ति इस कंपनी में टेक नहीं है।", "wo.err.changed_meanwhile": "किसी और ने अभी-अभी यह जॉब बदला है। रीलोड करके फिर से कोशिश करें।", "wo.err.cancelled": "यह जॉब कैंसल हो चुका था।", "wo.err.cannot_amend": "साइन हुए जॉब में सुधार सिर्फ़ शॉप मैनेजर या साइन करने वाला टेक कर सकता है।", "wo.err.need_reason": "वजह बताएँ।", "wo.err.own_labor_only": "आप सिर्फ़ अपने घंटे लिख सकते हैं।", "wo.err.own_lines_only": "आप सिर्फ़ अपनी डाली हुई लाइनें रद्द कर सकते हैं।", "wo.err.no_line": "वह लाइन इस जॉब पर नहीं है, या पहले से रद्द है।", "wo.err.too_many_photos": "एक जॉब में ज़्यादा से ज़्यादा {max} फोटो हो सकती हैं।", "wo.err.photo_type": "फोटो JPEG, PNG या WebP होनी चाहिए।", "wo.err.photo_big": "वह फोटो 3 MB से बड़ी है।", "wo.err.cannot_sign": "इसे सिर्फ़ वही टेक साइन-ऑफ कर सकता है जो इस जॉब पर असाइन है, या जिसने इस पर घंटे लिखे हैं।", "wo.err.need_correction": "साइन-ऑफ से पहले करेक्शन (क्या काम किया) लिखें।", "wo.err.name_mismatch": "लिखा गया नाम आपके अकाउंट के नाम ({name}) से मेल नहीं खाता।", "wo.err.close_needs_complete": "सिर्फ़ साइन-ऑफ हुआ जॉब ही बंद किया जा सकता है।", "wo.err.amend_needs_signed": "इस तरह सुधार सिर्फ़ साइन-ऑफ हुए जॉब में होता है। खुले जॉब को सीधे एडिट करें।", "wo.err.no_change": "यह वही है जो अभी लिखा हुआ है।", "wo.warn.no_labor": "इस जॉब पर कोई घंटे नहीं लिखे गए।", "wo.warn.no_cause": "कोई वजह नहीं लिखी गई।"}, "ur": {"_language": "اردو", "app.sign_out": "سائن آؤٹ", "app.apex_console": "Apex کنسول", "app.language": "زبان", "app.loading": "لوڈ ہو رہا ہے…", "app.something_wrong": "کچھ گڑبڑ ہو گئی۔ دوبارہ کوشش کریں۔", "app.fix_first": "پہلے یہ ٹھیک کریں:", "app.check_these": "ایک نظر دیکھ لیں:", "app.back": "واپس", "app.save": "محفوظ کریں", "app.cancel": "منسوخ", "app.saved": "محفوظ ہو گیا۔", "app.choose": "چنیں…", "app.none": "کوئی نہیں", "app.by_at": "{name} · {when}", "app.preview_banner": "پریویو، نمونے کے ڈیٹا کے ساتھ۔ یہاں کچھ بھی اصلی نہیں اور نہ ہی محفوظ ہوتا ہے۔", "login.title": "DTR میں سائن اِن کریں", "login.email": "ای میل", "login.password": "پاس ورڈ", "login.button": "سائن اِن", "tab.workorders": "ورک آرڈر", "tab.units": "یونٹ", "tab.people": "لوگ", "tab.log": "تبدیلیوں کا ریکارڈ", "tab.companies": "کمپنیاں", "role.mechanic": "مکینک", "role.shop_manager": "شاپ مینیجر", "role.fleet_manager": "فلیٹ مینیجر", "role.admin": "کمپنی ایڈمن", "role.platform_operator": "Apex آپریٹر", "type.power_unit": "پاور یونٹ", "type.trailer": "ٹریلر", "type.power_unit_long": "پاور یونٹ (ٹرک/ٹریکٹر)", "field.asset_id": "یونٹ", "field.asset_type": "قسم", "field.unit_number": "یونٹ نمبر", "field.vin": "VIN", "field.model_year": "سال", "field.make": "میک (کمپنی)", "field.model": "ماڈل", "field.plate": "نمبر پلیٹ", "field.plate_state": "پلیٹ کی اسٹیٹ", "field.owner": "مالک کون ہے؟", "field.furnished_by": "مالک کا نام", "field.odometer": "اوڈومیٹر", "field.engine_hours": "انجن گھنٹے", "field.notes": "نوٹس", "field.note": "نوٹ", "field.complaint": "شکایت", "field.cause": "وجہ", "field.correction": "مرمت (کیا کام کیا)", "field.priority": "ترجیح", "field.category": "کیٹیگری", "field.source": "کہاں سے آیا", "field.source_ref": "حوالہ (رپورٹ یا ٹکٹ نمبر)", "field.hours": "گھنٹے", "field.date": "تاریخ", "field.tech": "ٹیک", "field.part_number": "پارٹ نمبر", "field.description": "تفصیل", "field.qty": "تعداد", "field.unit_cost": "فی عدد قیمت", "field.vendor": "وینڈر", "field.invoice_number": "انوائس نمبر", "field.amount": "رقم", "field.reason": "وجہ", "field.caption": "کیپشن", "field.name": "نام", "field.email": "ای میل", "field.role": "عہدہ", "field.password": "پاس ورڈ", "field.company_name": "کمپنی کا نام", "field.admin_name": "ایڈمن کا نام", "field.admin_email": "ایڈمن کی ای میل", "field.admin_password": "ایڈمن کا شروعاتی پاس ورڈ", "field.typed_name": "آپ کا پورا نام", "field.status": "اسٹیٹس", "units.title": "یونٹ", "units.add": "یونٹ شامل کریں", "units.import": "لسٹ امپورٹ کریں", "units.search": "یونٹ، VIN یا پلیٹ تلاش کریں", "units.all": "سب", "units.power_units": "پاور یونٹ", "units.trailers": "ٹریلر", "units.in_fleet": "فلیٹ میں", "units.left_fleet": "فلیٹ سے نکل گئے", "units.count": "{n} یونٹ", "units.none": "ابھی کوئی یونٹ نہیں۔", "units.none_import": "اسپریڈشیٹ سے فلیٹ لوڈ کرنے کے لیے \"لسٹ امپورٹ کریں\" استعمال کریں۔", "units.no_make_year": "میک/سال نہیں", "units.unit": "یونٹ {unit}", "units.edit": "ایڈٹ", "units.vin_missing": "درج نہیں", "units.company_owned": "کمپنی کی ملکیت", "units.owned_by_company": "کمپنی", "units.owned_by_other": "کوئی اور (لیز / فرنشڈ)", "units.furnished_by": "{name} کی طرف سے فراہم کردہ", "units.odometer_value": "{n} میل ({name}، {when})", "units.hours_value": "{n} ({name}، {when})", "units.company": "کمپنی", "units.leaving_title": "فلیٹ سے نکال رہے ہیں؟", "units.leaving_help": "بیچ دیا، کباڑ کر دیا یا واپس کر دیا۔ یونٹ اور اس کا ریکارڈ رکھا جاتا ہے، ڈیلیٹ نہیں ہوتا۔", "units.leaving_placeholder": "مثلاً ڈیلر کو بیچ دیا", "units.leaving_button": "فلیٹ سے نکلا ہوا لگائیں", "units.leaving_confirm": "یونٹ {unit} کو فلیٹ سے نکلا ہوا لگائیں؟", "units.left_on": "فلیٹ سے نکلا", "units.reason_first": "پہلے وجہ لکھیں۔", "units.marked_left": "یونٹ کو فلیٹ سے نکلا ہوا لگا دیا گیا۔", "units.add_title": "یونٹ شامل کریں", "units.edit_title": "یونٹ {unit} ایڈٹ کریں", "units.save_changes": "تبدیلیاں محفوظ کریں", "units.added": "یونٹ شامل ہو گیا۔", "units.odometer_miles": "اوڈومیٹر (میل)", "units.work_history": "اس یونٹ کے ورک آرڈر", "units.new_wo": "اس یونٹ کے لیے نیا ورک آرڈر", "import.title": "فلیٹ لسٹ امپورٹ کریں", "import.help": "اپنی فلیٹ اسپریڈشیٹ کو CSV میں محفوظ کریں (Excel میں: File → Save As → CSV)۔ ہر ٹرک یا ٹریلر کی ایک لائن۔ اس میں ایک Unit کالم اور ایک Type کالم (truck یا trailer) ہونا ضروری ہے۔ یہ کالم ہوں تو پڑھ لیے جاتے ہیں: VIN، Year، Make، Model، Plate، State، Owner، Odometer، Engine hours، Notes۔", "import.nothing_saved_until": "جب تک ہر لائن ٹھیک نہ ہو، کچھ محفوظ نہیں ہوتا۔", "import.check": "فائل چیک کریں", "import.ready": "تیار: {n} یونٹ ({p} پاور یونٹ، {t} ٹریلر)۔", "import.cant_load": "یہ فائل ابھی لوڈ نہیں ہو سکتی۔", "import.ignored": "یہ کالم نظر انداز کیے جائیں گے: {cols}", "import.rows_to_fix": "ٹھیک کرنے والی لائنیں", "import.rows_to_look": "ایک نظر دیکھ لیں (امپورٹ نہیں رکے گا)", "import.row": "لائن {n}", "import.load": "{n} یونٹ لوڈ کریں", "import.loaded": "{n} یونٹ لوڈ ہو گئے۔", "import.nothing_saved": "کچھ بھی محفوظ نہیں ہوا۔", "people.title": "لوگ", "people.add_title": "بندہ شامل کریں", "people.email_help": "ای میل (اسی سے سائن اِن کریں گے)", "people.password_help": "شروعاتی پاس ورڈ (8 یا زیادہ حروف؛ انہیں خود جا کر بتائیں)", "people.add": "بندہ شامل کریں", "people.added": "بندہ شامل ہو گیا۔", "log.title": "تبدیلیوں کا ریکارڈ", "log.ok": "ریکارڈ ٹھیک ہے: {n} اندراجات، کسی میں چھیڑ چھاڑ نہیں ہوئی۔", "log.bad": "ریکارڈ کے اندراج {seq} میں مسئلہ: {why}", "log.action.org.created": "کمپنی سیٹ اپ ہوئی", "log.action.user.created": "بندہ شامل ہوا", "log.action.unit.created": "یونٹ شامل ہوا", "log.action.unit.edited": "یونٹ میں تبدیلی", "log.action.unit.retired": "یونٹ فلیٹ سے نکلا", "log.action.units.imported": "فلیٹ لسٹ امپورٹ ہوئی", "log.action.wo.created": "ورک آرڈر کھلا", "log.action.wo.edited": "ورک آرڈر میں تبدیلی", "log.action.wo.status": "ورک آرڈر کا اسٹیٹس بدلا", "log.action.wo.assigned": "ٹیک لگائے گئے", "log.action.wo.labor": "لیبر شامل ہوئی", "log.action.wo.part": "پارٹ شامل ہوا", "log.action.wo.vendor": "باہر کا کام شامل ہوا", "log.action.wo.void": "لائن کینسل (void) ہوئی", "log.action.wo.note": "نوٹ شامل ہوا", "log.action.wo.photo": "تصویر شامل ہوئی", "log.action.wo.signed": "ورک آرڈر سائن آف ہوا", "log.action.wo.closed": "ورک آرڈر بند ہوا", "log.action.wo.cancelled": "ورک آرڈر منسوخ ہوا", "log.action.wo.amended": "ورک آرڈر میں درستی ہوئی", "log.work_order": "ورک آرڈر", "console.title": "کسٹمر کمپنیاں", "console.counts": "{units} یونٹ · {people} لوگ", "console.none": "ابھی کوئی کمپنی نہیں۔", "console.new_title": "نئی کمپنی سیٹ اپ کریں", "console.create": "کمپنی بنائیں", "console.created": "کمپنی بن گئی۔", "status.open": "کھلا", "status.in_progress": "کام جاری", "status.waiting_parts": "پارٹس کا انتظار", "status.complete": "مکمل", "status.closed": "بند", "status.cancelled": "منسوخ", "priority.urgent": "فوری", "priority.high": "زیادہ", "priority.normal": "عام", "priority.low": "کم", "category.engine": "انجن", "category.brakes": "بریک", "category.tires_wheels": "ٹائر اور وہیل", "category.electrical": "الیکٹریکل", "category.lighting": "لائٹیں", "category.suspension_steering": "سسپنشن اور اسٹیئرنگ", "category.drivetrain": "ڈرائیو ٹرین", "category.cooling": "کولنگ", "category.fuel": "فیول سسٹم", "category.exhaust_aftertreatment": "ایگزاسٹ اور آفٹر ٹریٹمنٹ", "category.hvac": "HVAC", "category.body_frame": "باڈی اور فریم", "category.coupling": "ففتھ وہیل اور کپلنگ", "category.refrigeration": "ریفر یونٹ", "category.pm_service": "PM سروس", "category.inspection": "انسپیکشن", "category.other": "دیگر", "source.manual": "ہاتھ سے درج کیا", "source.dvir_defect": "DVIR خرابی", "source.pm": "PM کا وقت", "source.breakdown": "بریک ڈاؤن / روڈ کال", "source.roadside": "روڈ سائیڈ انسپیکشن", "source.inspection": "سالانہ / 90 دن والی انسپیکشن", "wo.title": "ورک آرڈر", "wo.new": "نیا ورک آرڈر", "wo.number": "WO-{n}", "wo.filter.mine": "میرے کام", "wo.filter.active": "کھلے", "wo.filter.complete": "ریویو کے لیے", "wo.filter.closed": "بند", "wo.filter.cancelled": "منسوخ", "wo.none": "یہاں کوئی ورک آرڈر نہیں۔", "wo.unassigned": "کسی کو نہیں دیا", "wo.new_title": "نیا ورک آرڈر", "wo.complaint_help": "کیا خرابی ہے، جیسے بتائی گئی", "wo.create": "ورک آرڈر کھولیں", "wo.created": "ورک آرڈر کھل گیا۔", "wo.unit_line": "یونٹ {unit}", "wo.opened_by": "{name} نے کھولا، {when}", "wo.section.job": "کام", "wo.section.status": "اسٹیٹس", "wo.section.techs": "ٹیک", "wo.section.labor": "لیبر", "wo.section.parts": "پارٹس", "wo.section.vendor": "باہر کا کام", "wo.section.notes": "نوٹس", "wo.section.photos": "تصویریں", "wo.section.signoff": "سائن آف", "wo.section.amendments": "درستیاں", "wo.section.history": "ہسٹری", "wo.edit_job": "کام ایڈٹ کریں", "wo.not_entered": "ابھی درج نہیں", "wo.move.in_progress": "کام شروع کریں", "wo.move.waiting_parts": "پارٹس کا انتظار", "wo.move.open": "واپس کھلا کریں", "wo.assign": "کام دیں", "wo.assigned_saved": "ٹیک لگا دیے گئے۔", "wo.add_labor": "گھنٹے شامل کریں", "wo.add_part": "پارٹ شامل کریں", "wo.add_vendor": "باہر کا کام شامل کریں", "wo.add_note": "نوٹ شامل کریں", "wo.add_photo": "تصویر شامل کریں", "wo.photo_added": "تصویر شامل ہو گئی۔", "wo.uploading": "اپ لوڈ ہو رہا ہے…", "wo.hours_value": "{n} گھنٹے", "wo.total_hours": "کل گھنٹے: {n}", "wo.parts_total": "پارٹس: {amount}", "wo.vendor_total": "باہر کا کام: {amount}", "wo.void": "کینسل (Void)", "wo.void_reason": "یہ لائن کیوں کینسل کی جا رہی ہے؟", "wo.voided": "VOID: {reason} ({name})", "wo.amended_line": "سائن آف کے بعد شامل کیا: {reason}", "wo.reason_signed": "یہ کام سائن آف ہو چکا ہے، اس لیے بتائیں کہ یہ کیوں شامل کیا جا رہا ہے:", "wo.signoff_statement_title": "سائن کر کے آپ یہ بیان دیتے ہیں:", "wo.signoff.statement": "اس جاب کا کام میں نے خود کیا یا اپنی نگرانی میں کروایا، اور یہ کام اوپر درج مرمت (correction) میں بیان کے مطابق مکمل ہے۔", "wo.signoff_type_name": "اپنا پورا نام بالکل ویسے ہی لکھیں جیسے آپ کے اکاؤنٹ میں ہے ({name})۔", "wo.sign": "مکمل ہونے کا سائن آف کریں", "wo.signed_by": "{name} نے سائن آف کیا، {when}", "wo.signed_ok": "سائن آف ہو گیا۔", "wo.closed_by": "{name} نے بند کیا، {when}", "wo.close": "ریویو مکمل: کام بند کریں", "wo.closed_ok": "کام بند ہو گیا۔", "wo.cancel_job": "یہ کام منسوخ کریں", "wo.cancel_help": "صرف اُس کام کے لیے جو ہونا ہی نہیں چاہیے تھا، جیسے ڈبل بنا ہوا۔", "wo.cancel_reason": "منسوخی کی وجہ", "wo.cancelled_by": "{name} نے منسوخ کیا، {when}: {reason}", "wo.cancel_confirm": "یہ ورک آرڈر منسوخ کریں؟", "wo.cancelled_ok": "کام منسوخ ہو گیا۔", "wo.amend_title": "سائن شدہ کام میں درستی کریں", "wo.amend_help": "اصل اندراج درستی کے ساتھ ریکارڈ میں رہتا ہے۔", "wo.amend_field": "کیا درست کرنا ہے", "wo.amend_value": "درست ویلیو", "wo.amend": "درستی محفوظ کریں", "wo.amended_ok": "درستی محفوظ ہو گئی۔", "wo.amendment_line": "{field}: “{before}” → “{after}” — {reason} ({name}، {when})", "wo.history_line": "{to} · {name}، {when}", "wo.only_shop": "یہ صرف شاپ شامل کر سکتی ہے۔", "err.bad_login": "ای میل یا پاس ورڈ غلط ہے۔", "err.account_off": "یہ اکاؤنٹ بند کر دیا گیا ہے۔", "err.sign_in_first": "پہلے سائن اِن کریں۔", "err.session_expired": "آپ کا سائن اِن ختم ہو گیا ہے۔ دوبارہ سائن اِن کریں۔", "err.password_short": "پاس ورڈ کم از کم 8 حروف کا ہونا چاہیے۔", "err.email_taken": "اس ای میل کا اکاؤنٹ پہلے سے موجود ہے۔", "err.operator_open_company": "لوگ دیکھنے کے لیے کنسول سے کمپنی کھولیں۔", "err.cannot_add_role": "{actor}، {target} شامل نہیں کر سکتا۔", "err.operator_only": "یہ صرف Apex کر سکتا ہے۔", "err.operator_read_only": "Apex یہ دیکھ سکتا ہے لیکن یہاں سے بدل نہیں سکتا۔", "err.role_cannot_edit_units": "آپ کا عہدہ یونٹ نہیں بدل سکتا۔", "err.no_such_unit": "ایسا کوئی یونٹ نہیں۔", "err.retire_reason_required": "بتائیں کہ یونٹ فلیٹ سے کیوں نکل رہا ہے۔", "err.already_retired": "یہ یونٹ پہلے ہی فلیٹ سے باہر ہے۔", "err.not_allowed": "اس اکاؤنٹ کو اجازت نہیں۔", "err.admin_only_log": "ریکارڈ صرف کمپنی ایڈمن پڑھ سکتا ہے۔", "err.check_field": "یہ خانہ چیک کریں: {field}", "err.required": "{field} ضروری ہے۔", "err.not_a_number": "{field} نمبر ہونا چاہیے۔", "err.must_be_positive": "{field} زیرو سے زیادہ ہونا چاہیے۔", "err.too_large": "{field} بہت زیادہ ہے (زیادہ سے زیادہ {max})۔", "err.bad_choice": "لسٹ میں سے {field} چنیں۔", "err.bad_date": "یہ تاریخ درست نہیں۔", "err.date_future": "یہ تاریخ آگے (مستقبل) کی ہے۔", "err.part_needs_name": "پارٹ نمبر یا تفصیل لکھیں۔", "unit.err.type_required": "بتائیں کہ یہ پاور یونٹ ہے یا ٹریلر۔", "unit.err.number_required": "یونٹ نمبر ضروری ہے۔", "unit.err.number_too_long": "یونٹ نمبر 30 حروف سے لمبا ہے۔", "unit.err.furnished_by_required": "یہ یونٹ کمپنی کی ملکیت نہیں، اس لیے لکھیں کہ یہ کون فراہم کرتا ہے (مالک کا نام)۔", "unit.err.exists": "یونٹ {unit} پہلے سے DTR میں موجود ہے۔", "unit.warn.trailer_hours": "ٹریلر پر انجن گھنٹے درج ہیں۔ ریفر یونٹ کے لیے ٹھیک ہے؛ ورنہ چیک کریں۔", "unit.warn.no_make": "میک درج نہیں۔", "unit.warn.no_year": "سال درج نہیں۔", "vin.warn.none": "VIN درج نہیں۔", "vin.warn.short": "VIN میں {n} حروف ہیں، 17 نہیں۔ 1981 سے پہلے کے یونٹ کے لیے ٹھیک ہے؛ ورنہ پلیٹ چیک کریں۔", "vin.err.long": "VIN میں {n} حروف ہیں؛ VIN میں 17 ہوتے ہیں۔", "vin.err.chars": "VIN میں ایسا حرف ہے جو VIN میں کبھی نہیں ہوتا (I، O اور Q کبھی استعمال نہیں ہوتے)۔", "vin.warn.check_digit": "VIN کا چیک ڈیجٹ میل نہیں کھاتا۔ یونٹ پر لگی پلیٹ سے ملا کر دیکھیں۔", "year.err.nan": "سال '{value}' نمبر نہیں ہے۔", "year.err.range": "سال {year}، 1950 سے {latest} کے اندر نہیں۔", "reading.err.nan": "{what} '{value}' نمبر نہیں ہے۔", "reading.err.negative": "{what} منفی (مائنس) نہیں ہو سکتا۔", "csv.err.unreadable": "فائل پڑھنے کے قابل ٹیکسٹ نہیں۔ اسے CSV میں محفوظ کریں۔", "csv.err.empty": "فائل خالی ہے۔", "csv.err.no_unit_column": "یونٹ نمبر کا کالم نہیں ملا۔ کسی کالم کا نام 'Unit' یا 'Unit Number' رکھیں۔", "csv.err.no_type_column": "Type کالم نہیں ملا۔ ایک 'Type' کالم شامل کریں جس میں ہر لائن کے لیے truck یا trailer لکھا ہو۔", "csv.err.no_rows": "فائل میں ہیڈنگ تو ہیں لیکن کوئی یونٹ نہیں۔", "csv.err.too_many": "فائل میں {n} لائنیں ہیں؛ حد {limit} ہے۔", "csv.err.too_big": "فائل 2 MB سے بڑی ہے۔ فلیٹ لسٹ اس سے کہیں چھوٹی ہونی چاہیے؛ کیا یہ صحیح فائل ہے؟", "csv.err.dup_row": "یونٹ {unit} لائن {row} پر بھی ہے۔", "csv.err.rows_bad": "{n} لائن(وں) کو ٹھیک کرنا ہے۔ کچھ بھی محفوظ نہیں ہوا۔", "wo.err.not_found": "ایسا کوئی ورک آرڈر نہیں۔", "wo.err.need_unit": "وہ یونٹ چنیں جس کا یہ کام ہے۔", "wo.err.unit_retired": "وہ یونٹ فلیٹ سے نکل چکا ہے۔", "wo.err.need_complaint": "شکایت لکھیں: کیا خرابی ہے۔", "wo.err.signed_use_amend": "یہ کام سائن آف ہو چکا ہے۔ اس کی جگہ درستی (amendment) استعمال کریں۔", "wo.err.bad_move": "یہاں سے کام اس اسٹیٹس پر نہیں جا سکتا۔", "wo.err.not_open": "یہ کام اب کھلا نہیں۔", "wo.err.bad_tech": "ان میں سے ایک بندہ اس کمپنی میں ٹیک نہیں ہے۔", "wo.err.changed_meanwhile": "ابھی ابھی کسی اور نے یہ کام بدلا ہے۔ ری لوڈ کر کے دوبارہ کوشش کریں۔", "wo.err.cancelled": "یہ کام منسوخ ہو گیا تھا۔", "wo.err.cannot_amend": "سائن شدہ کام میں درستی صرف شاپ مینیجر یا سائن کرنے والا ٹیک کر سکتا ہے۔", "wo.err.need_reason": "وجہ بتائیں۔", "wo.err.own_labor_only": "آپ صرف اپنے گھنٹے درج کر سکتے ہیں۔", "wo.err.own_lines_only": "آپ صرف اپنی درج کی ہوئی لائنیں کینسل کر سکتے ہیں۔", "wo.err.no_line": "وہ لائن اس کام پر نہیں، یا پہلے ہی کینسل ہو چکی ہے۔", "wo.err.too_many_photos": "ایک کام پر زیادہ سے زیادہ {max} تصویریں ہو سکتی ہیں۔", "wo.err.photo_type": "تصویریں JPEG، PNG یا WebP ہونی چاہئیں۔", "wo.err.photo_big": "وہ تصویر 3 MB سے بڑی ہے۔", "wo.err.cannot_sign": "اس کام کا سائن آف صرف وہ ٹیک کر سکتا ہے جسے یہ کام دیا گیا ہو، یا جس نے اس پر گھنٹے درج کیے ہوں۔", "wo.err.need_correction": "سائن آف سے پہلے مرمت (کیا کام کیا) لکھیں۔", "wo.err.name_mismatch": "لکھا گیا نام آپ کے اکاؤنٹ کے نام ({name}) سے نہیں ملتا۔", "wo.err.close_needs_complete": "صرف سائن آف شدہ کام ہی بند ہو سکتا ہے۔", "wo.err.amend_needs_signed": "اس طرح صرف سائن آف شدہ کام کی درستی ہوتی ہے۔ کھلے کام کو سیدھا ایڈٹ کریں۔", "wo.err.no_change": "یہ وہی ہے جو ابھی موجود ہے۔", "wo.warn.no_labor": "اس کام پر کوئی گھنٹے درج نہیں ہوئے۔", "wo.warn.no_cause": "کوئی وجہ درج نہیں کی گئی۔"}};
+try { localStorage.removeItem("dtr_token"); } catch (e) {}</script>
+<script>
+// DTR preview: a pretend server that runs inside the page.
+//
+// It answers the same addresses the real server does, with sample data held
+// in memory, so the real screens (app.js) can be clicked through without a
+// backend. It follows the main rules (who may do what, sign-off by typed
+// name, signed jobs corrected by amendment) but it is NOT the real server:
+// the real rules and their tests live in dtr/. Nothing here is saved; reload
+// the page and it starts over.
+"use strict";
+(function () {
+  const L = () => window.DTR_LOCALES;
+  let lang = "en";
+  const tx = (key, p = {}) => {
+    let s = (L()[lang] || {})[key] || L().en[key] || key;
+    for (const [k, v] of Object.entries(p)) s = s.split("{" + k + "}").join(v);
+    return s;
+  };
+  const now = () => new Date().toISOString();
+  const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString();
+  const id = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+  const today = () => new Date().toISOString().slice(0, 10);
+  const daysAgo = (d) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
+
+  // ---------------------------------------------------------- sample world
+  const ORG = { org_id: "org_demo", name: "Demo Fleet Co (sample)" };
+  const PEOPLE = [
+    { user_id: "u_admin", name: "Maria Lopez", email: "maria@demo.example", role: "admin" },
+    { user_id: "u_lead", name: "Luis Ortega", email: "luis@demo.example", role: "shop_manager" },
+    { user_id: "u_jose", name: "José Ramírez", email: "jose@demo.example", role: "mechanic" },
+    { user_id: "u_harp", name: "Harpreet Singh", email: "harpreet@demo.example", role: "mechanic" },
+    { user_id: "u_imran", name: "Imran Khan", email: "imran@demo.example", role: "mechanic" },
+    { user_id: "u_fran", name: "Fran Lee", email: "fran@demo.example", role: "fleet_manager" },
+  ].map((p) => ({ ...p, org_id: ORG.org_id, active: true, language: null }));
+  const OPS = { user_id: "u_ops", name: "Apex", email: "ops@apex.example", role: "platform_operator",
+                org_id: null, active: true, language: null };
+  const USERS = [...PEOPLE, OPS];
+  const P = Object.fromEntries(USERS.map((u) => [u.user_id, u]));
+
+  const unit = (n, type, vin, year, make, model, plate, odo, extra = {}) => ({
+    asset_id: "a_" + n.replace(/\W/g, ""), org_id: ORG.org_id, asset_type: type, unit_number: n,
+    unit_number_key: n.toUpperCase(), vin, model_year: year, make, model, plate, plate_state: plate ? "CA" : null,
+    owned_by_carrier: true, furnished_by: null, odometer: odo, engine_hours: null,
+    odometer_at: odo != null ? ago(30) : null, odometer_by: odo != null ? "Maria Lopez" : null,
+    notes: null, status: "active", retired_at: null, created_at: ago(400), ...extra });
+  const UNITS = [
+    unit("101", "power_unit", "1M8GDM9AXKP042788", 2019, "Freightliner", "Cascadia", "8ABC123", 412870),
+    unit("102", "power_unit", "1XKYD49X7KJ123456", 2020, "Kenworth", "T680", "8XYZ789", 301550),
+    unit("105", "power_unit", "3AKJHHDR5LSLA1234", 2021, "Freightliner", "Cascadia", "9DEF456", 188020),
+    unit("108", "power_unit", "1XPBD49X1MD765432", 2022, "Peterbilt", "579", "9GHI321", 96400),
+    unit("T-7", "trailer", "1UYVS2538KU123456", 2018, "Utility", "3000R reefer", "4AB1234", null,
+         { engine_hours: 11240, engine_hours_at: ago(30), engine_hours_by: "Maria Lopez" }),
+    unit("T-8", "trailer", "1JJV532D8KL123456", 2019, "Wabash", "DuraPlate", "4AB5678", null),
+    unit("T-12", "trailer", null, 2011, "Great Dane", "Flatbed", "4CD9012", null,
+         { owned_by_carrier: false, furnished_by: "Penske Leasing" }),
+  ];
+  const U = (n) => UNITS.find((u) => u.unit_number === n);
+
+  let woNo = 0;
+  const WOS = [];
+  const line = (by, at, data) => ({ line_id: id(), at, by: by.user_id, by_name: by.name, ...data });
+  const job = (unitNo, data, extra = {}) => {
+    const u = U(unitNo);
+    const by = P[data.by || "u_fran"];
+    const w = {
+      work_order_id: "wo_" + (++woNo), org_id: ORG.org_id, number: woNo, asset_id: u.asset_id,
+      unit_number: u.unit_number, asset_type: u.asset_type, complaint: data.complaint, cause: null,
+      correction: null, priority: data.priority || "normal", category: data.category || "other",
+      source: data.source || "manual", source_ref: data.source_ref || null, odometer: data.odometer ?? null,
+      engine_hours: null, status: "open", assigned: [], labor: [], parts: [], vendor: [], notes: [],
+      photos: [], amendments: [], history: [{ at: ago(data.age || 5), by: by.user_id, by_name: by.name, from: null, to: "open" }],
+      signoff: null, closed: null, cancelled: null, created_at: ago(data.age || 5),
+      created_by: by.user_id, created_name: by.name, updated_at: ago(1), ...extra };
+    WOS.push(w);
+    return w;
+  };
+  const step = (w, to, who, hAgo) => { w.history.push({ at: ago(hAgo), by: who.user_id, by_name: who.name, from: w.status, to }); w.status = to; };
+  const tech = (uid) => ({ user_id: uid, name: P[uid].name });
+
+  // A spread of jobs across the ladder.
+  let w = job("101", { complaint: "Driver reports left rear brake light out", priority: "high",
+    category: "lighting", source: "dvir_defect", age: 6 });
+  w.assigned = [tech("u_jose")];
+  step(w, "in_progress", P.u_jose, 4);
+  w.labor.push(line(P.u_jose, ago(3), { user_id: "u_jose", name: "José Ramírez", hours: 0.5, date: today(), note: "Diagnóstico" }));
+
+  w = job("102", { complaint: "Air leak at driver side brake chamber, audible with brakes applied",
+    priority: "urgent", category: "brakes", source: "roadside", source_ref: "CA-RI-55120", age: 20, by: "u_lead" });
+  w.assigned = [tech("u_harp")];
+  step(w, "in_progress", P.u_harp, 18); step(w, "waiting_parts", P.u_harp, 16);
+  w.cause = "Cracked type 30/30 spring brake chamber diaphragm";
+  w.labor.push(line(P.u_harp, ago(17), { user_id: "u_harp", name: "Harpreet Singh", hours: 1.25, date: daysAgo(1), note: "Leak check, pulled chamber" }));
+  w.parts.push(line(P.u_harp, ago(16), { part_number: "3030-SBC", description: "Spring brake chamber 30/30", qty: 1, unit_cost: 89.5 }));
+  w.notes.push(line(P.u_lead, ago(15), { text: "Chamber on order from FleetPride, ETA tomorrow AM" }));
+
+  w = job("T-7", { complaint: "Reefer unit not holding temp, alarm code 63", priority: "high",
+    category: "refrigeration", age: 3 });
+
+  w = job("105", { complaint: "PM-A service due", priority: "normal", category: "pm_service",
+    source: "pm", odometer: 188020, age: 30, by: "u_lead" });
+  w.assigned = [tech("u_imran")];
+  step(w, "in_progress", P.u_imran, 28);
+  w.cause = "Scheduled service"; w.correction = "Changed oil and filters, greased chassis, checked brakes and tires. All within spec.";
+  w.labor.push(line(P.u_imran, ago(27), { user_id: "u_imran", name: "Imran Khan", hours: 2.5, date: daysAgo(1), note: null }));
+  w.parts.push(line(P.u_imran, ago(27), { part_number: "LF14000NN", description: "Oil filter", qty: 1, unit_cost: 38.2 }));
+  w.parts.push(line(P.u_imran, ago(27), { part_number: "15W40", description: "Engine oil, gal", qty: 11, unit_cost: 14.5 }));
+  w.signoff = { user_id: "u_imran", name: "Imran Khan", role: "mechanic", typed_name: "Imran Khan", at: ago(26),
+    statement: "I did or supervised the work on this job, and it is complete as described in the correction above.", statement_lang: "en" };
+  step(w, "complete", P.u_imran, 26);
+
+  w = job("108", { complaint: "Steer tire worn on outer edge", priority: "normal", category: "tires_wheels", age: 80 });
+  w.assigned = [tech("u_jose")];
+  step(w, "in_progress", P.u_jose, 78);
+  w.cause = "Toe out of spec"; w.correction = "Replaced RF steer tire, sent out for alignment";
+  w.labor.push(line(P.u_jose, ago(77), { user_id: "u_jose", name: "José Ramírez", hours: 1, date: daysAgo(3), note: null }));
+  w.vendor.push(line(P.u_lead, ago(70), { vendor: "Valley Alignment", invoice_number: "VA-20931", description: "3-axle alignment", amount: 245 }));
+  w.signoff = { user_id: "u_jose", name: "José Ramírez", role: "mechanic", typed_name: "José Ramírez", at: ago(69),
+    statement: "Yo realicé o supervisé el trabajo de esta orden, y está completo tal como se describe en la corrección de arriba.", statement_lang: "es" };
+  step(w, "complete", P.u_jose, 69);
+  w.closed = { user_id: "u_lead", name: "Luis Ortega", at: ago(60) };
+  step(w, "closed", P.u_lead, 60);
+
+  const LOG = [];
+  const log = (who, action) => LOG.push({ seq: LOG.length + 1, org_id: ORG.org_id, at: now(),
+    actor_user_id: who.user_id, actor_name: who.name, actor_role: who.role, action, before: null, after: null });
+  [["u_ops", "org.created"], ["u_ops", "user.created"], ["u_admin", "units.imported"],
+   ["u_lead", "wo.created"], ["u_imran", "wo.signed"], ["u_lead", "wo.closed"]]
+    .forEach(([u, a]) => log(P[u], a));
+
+  // ---------------------------------------------------------- plumbing
+  let me = null;
+  const PERMS = { admin: ["edit_units", "import_units", "manage_people", "read_audit"],
+    fleet_manager: ["edit_units", "import_units", "manage_people"], shop_manager: ["edit_units", "manage_people"],
+    mechanic: [], platform_operator: [] };
+  const GRANT = { admin: ["mechanic", "shop_manager", "fleet_manager", "admin"], fleet_manager: ["fleet_manager"],
+    shop_manager: ["mechanic", "shop_manager"], mechanic: [], platform_operator: [] };
+  const LEADS = ["shop_manager", "admin"], TECHS = ["mechanic", "shop_manager", "admin"];
+  const STAFF = ["mechanic", "shop_manager", "fleet_manager", "admin"];
+  const ACTIVE = ["open", "in_progress", "waiting_parts"], SIGNED = ["complete", "closed"];
+
+  class Stop { constructor(status, detail) { this.status = status; this.detail = detail; } }
+  const stop = (status, key, p) => { throw new Stop(status, tx(key, p)); };
+  const stopMany = (errors) => { throw new Stop(400, { errors }); };
+  const reply = (status, body) => ({ ok: status < 400, status,
+    json: async () => body, blob: async () => body });
+  const totals = (w) => {
+    const live = (l) => l.filter((x) => !x.voided);
+    const parts = live(w.parts).reduce((s, l) => s + (l.qty || 0) * (l.unit_cost || 0), 0);
+    const vendor = live(w.vendor).reduce((s, l) => s + (l.amount || 0), 0);
+    return { labor_hours: live(w.labor).reduce((s, l) => s + (l.hours || 0), 0),
+      parts_cost: parts, vendor_cost: vendor, cost_without_labor: parts + vendor };
+  };
+  const out = (w) => ({ ...JSON.parse(JSON.stringify(w)), totals: totals(w) });
+  const mustBe = (ok, key = "err.not_allowed") => { if (!ok) stop(403, key); };
+  const numOr = (v, field, max, allowZero = true) => {
+    if (v === null || v === undefined || v === "") return [null, null];
+    const n = Number(String(v).replace(/,/g, ""));
+    if (Number.isNaN(n)) return [null, tx("err.not_a_number", { field: tx("field." + field) })];
+    if (n < 0 || (!allowZero && n === 0)) return [null, tx("err.must_be_positive", { field: tx("field." + field) })];
+    if (max && n > max) return [null, tx("err.too_large", { field: tx("field." + field), max })];
+    return [n, null];
+  };
+  const stamp = () => ({ line_id: id(), at: now(), by: me.user_id, by_name: me.name });
+  const norm = (s) => (s || "").trim().replace(/\s+/g, " ").toLocaleLowerCase();
+  const pub = (u) => ({ user_id: u.user_id, name: u.name, email: u.email, role: u.role,
+    org_id: u.org_id, active: u.active, language: u.language || "en" });
+
+  // Sign-in: any password works in the preview; the quick buttons fill it in.
+  const routes = [];
+  const on = (method, pattern, fn) => routes.push([method, new RegExp("^" + pattern + "$"), fn]);
+
+  on("POST", "/api/auth/login", (b) => {
+    const u = USERS.find((x) => x.email === (b.email || "").toLowerCase());
+    if (!u) stop(401, "err.bad_login");
+    me = u;
+    return { token: "preview-" + u.user_id, user: pub(u), org: u.org_id ? ORG : null };
+  });
+  on("GET", "/api/me", () => { if (!me) stop(401, "err.sign_in_first"); return { user: pub(me), org: me.org_id ? ORG : null, can: PERMS[me.role] }; });
+  on("PATCH", "/api/me", (b) => { me.language = b.language; return { language: b.language }; });
+
+  // --- units
+  on("GET", "/api/assets", (b, q) => {
+    let rows = UNITS.filter((u) => u.status === (q.get("status") || "active"));
+    if (q.get("type")) rows = rows.filter((u) => u.asset_type === q.get("type"));
+    const n = (q.get("q") || "").trim().toUpperCase();
+    if (n) rows = rows.filter((u) => u.unit_number_key.includes(n) || (u.vin || "").includes(n) || (u.plate || "").includes(n));
+    return { units: rows };
+  });
+  on("GET", "/api/assets/([^/]+)", (b, q, [aid]) => {
+    const u = UNITS.find((x) => x.asset_id === aid);
+    if (!u) stop(404, "err.no_such_unit");
+    return u;
+  });
+  const unitFrom = (b, old = {}) => {
+    const errors = [];
+    const v = { ...old, ...b };
+    if (!["power_unit", "trailer"].includes(v.asset_type)) errors.push(tx("unit.err.type_required"));
+    if (!(v.unit_number || "").trim()) errors.push(tx("unit.err.number_required"));
+    const key = (v.unit_number || "").trim().toUpperCase();
+    if (key && UNITS.some((u) => u.unit_number_key === key && u.asset_id !== old.asset_id))
+      errors.push(tx("unit.err.exists", { unit: v.unit_number }));
+    if (!v.owned_by_carrier && !(v.furnished_by || "").trim()) errors.push(tx("unit.err.furnished_by_required"));
+    if (errors.length) stopMany(errors);
+    return { ...v, unit_number: v.unit_number.trim(), unit_number_key: key,
+      vin: v.vin ? v.vin.toUpperCase().replace(/[\s-]/g, "") : null,
+      model_year: v.model_year ? Number(v.model_year) : null,
+      odometer: v.odometer != null && v.odometer !== "" ? Number(v.odometer) : null,
+      engine_hours: v.engine_hours != null && v.engine_hours !== "" ? Number(v.engine_hours) : null };
+  };
+  on("POST", "/api/assets", (b) => {
+    mustBe(PERMS[me.role].includes("edit_units"), "err.role_cannot_edit_units");
+    const u = { ...unitFrom(b), asset_id: "a_" + id(), org_id: ORG.org_id, status: "active", created_at: now() };
+    if (u.odometer != null) { u.odometer_at = now(); u.odometer_by = me.name; }
+    UNITS.push(u); log(me, "unit.created");
+    return { unit: u, warnings: [] };
+  });
+  on("PATCH", "/api/assets/([^/]+)", (b, q, [aid]) => {
+    mustBe(PERMS[me.role].includes("edit_units"), "err.role_cannot_edit_units");
+    const i = UNITS.findIndex((x) => x.asset_id === aid);
+    const old = UNITS[i];
+    const u = unitFrom(b, old);
+    if (u.odometer !== old.odometer) { u.odometer_at = now(); u.odometer_by = me.name; }
+    UNITS[i] = u; log(me, "unit.edited");
+    return { unit: u, warnings: [] };
+  });
+  on("POST", "/api/assets/([^/]+)/retire", (b, q, [aid]) => {
+    mustBe(PERMS[me.role].includes("edit_units"), "err.role_cannot_edit_units");
+    if (!(b.reason || "").trim()) stop(400, "err.retire_reason_required");
+    const u = UNITS.find((x) => x.asset_id === aid);
+    Object.assign(u, { status: "retired", retired_at: now(), retired_reason: b.reason.trim() });
+    log(me, "unit.retired");
+    return { unit: u };
+  });
+  on("POST", "/api/assets/import", () => stop(400, "app.preview_banner"));
+
+  // --- people
+  on("GET", "/api/users", () => ({ users: PEOPLE.map(pub),
+    may_add: PERMS[me.role].includes("manage_people") ? GRANT[me.role] : [] }));
+  on("POST", "/api/users", (b) => {
+    mustBe(PERMS[me.role].includes("manage_people") && GRANT[me.role].includes(b.role));
+    if ((b.password || "").length < 8) stop(400, "err.password_short");
+    if (USERS.some((u) => u.email === (b.email || "").toLowerCase())) stop(409, "err.email_taken");
+    const u = { user_id: "u_" + id(), name: b.name.trim(), email: b.email.toLowerCase(), role: b.role,
+      org_id: ORG.org_id, active: true, language: b.language };
+    PEOPLE.push(u); USERS.push(u); P[u.user_id] = u; log(me, "user.created");
+    return pub(u);
+  });
+
+  // --- log and console
+  on("GET", "/api/audit", () => { mustBe(me.role === "admin", "err.admin_only_log"); return { entries: [...LOG].reverse() }; });
+  on("GET", "/api/audit/verify", () => ({ ok: true, entries: LOG.length }));
+  on("GET", "/api/operator/orgs", () => { mustBe(me.role === "platform_operator", "err.operator_only");
+    return { orgs: [{ ...ORG, units: UNITS.filter((u) => u.status === "active").length, people: PEOPLE.length }] }; });
+  on("POST", "/api/operator/orgs", () => stop(400, "app.preview_banner"));
+
+  // --- work orders
+  on("GET", "/api/workorders/meta", () => ({
+    statuses: ["open", "in_progress", "waiting_parts", "complete", "closed", "cancelled"],
+    priorities: ["urgent", "high", "normal", "low"],
+    categories: ["engine", "brakes", "tires_wheels", "electrical", "lighting", "suspension_steering", "drivetrain",
+      "cooling", "fuel", "exhaust_aftertreatment", "hvac", "body_frame", "coupling", "refrigeration", "pm_service",
+      "inspection", "other"],
+    sources: ["manual", "dvir_defect", "pm", "breakdown", "roadside", "inspection"],
+    techs: PEOPLE.filter((p) => ["mechanic", "shop_manager"].includes(p.role)).map((p) => ({ user_id: p.user_id, name: p.name, role: p.role })),
+    may: { create: STAFF.includes(me.role), work: TECHS.includes(me.role), lead: LEADS.includes(me.role), note: STAFF.includes(me.role) } }));
+  const RANK = { urgent: 0, high: 1, normal: 2, low: 3 };
+  on("GET", "/api/workorders", (b, q) => {
+    const view = q.get("view") || "active";
+    let rows = WOS.filter((w) => view === "all" || (view === "active" ? ACTIVE.includes(w.status) : w.status === view));
+    if (q.get("mine") === "true") rows = rows.filter((w) => w.assigned.some((a) => a.user_id === me.user_id) || w.labor.some((l) => l.user_id === me.user_id));
+    if (q.get("asset_id")) rows = rows.filter((w) => w.asset_id === q.get("asset_id"));
+    rows.sort(view === "active" ? (a, c) => RANK[a.priority] - RANK[c.priority] || a.number - c.number : (a, c) => c.number - a.number);
+    return { work_orders: rows.map(out) };
+  });
+  const get = (wid) => { const w = WOS.find((x) => x.work_order_id === wid); if (!w) stop(404, "wo.err.not_found"); return w; };
+  on("GET", "/api/workorders/([^/]+)", (b, q, [wid]) => out(get(wid)));
+  on("POST", "/api/workorders", (b) => {
+    mustBe(STAFF.includes(me.role));
+    const u = UNITS.find((x) => x.asset_id === b.asset_id);
+    const errors = [];
+    if (!u) errors.push(tx("wo.err.need_unit"));
+    if (!(b.complaint || "").trim()) errors.push(tx("wo.err.need_complaint"));
+    if (errors.length) stopMany(errors);
+    const w = job(u.unit_number, { ...b, complaint: b.complaint.trim(), by: me.user_id, age: 0 });
+    log(me, "wo.created");
+    return out(w);
+  });
+  on("PATCH", "/api/workorders/([^/]+)", (b, q, [wid]) => {
+    const w = get(wid);
+    mustBe(TECHS.includes(me.role));
+    if (!ACTIVE.includes(w.status)) stop(400, "wo.err.signed_use_amend");
+    if ("complaint" in b && !(b.complaint || "").trim()) stopMany([tx("wo.err.need_complaint")]);
+    for (const f of ["complaint", "cause", "correction", "priority", "category"]) if (f in b) w[f] = b[f] || null;
+    for (const f of ["odometer", "engine_hours"]) if (f in b) w[f] = b[f] == null ? null : Number(b[f]);
+    log(me, "wo.edited");
+    return out(w);
+  });
+  const MOVES = { open: ["in_progress", "waiting_parts"], in_progress: ["open", "waiting_parts"], waiting_parts: ["open", "in_progress"] };
+  on("POST", "/api/workorders/([^/]+)/status", (b, q, [wid]) => {
+    const w = get(wid); mustBe(TECHS.includes(me.role));
+    if (!(MOVES[w.status] || []).includes(b.status)) stop(400, "wo.err.bad_move");
+    step(w, b.status, me, 0); log(me, "wo.status"); return out(w);
+  });
+  on("POST", "/api/workorders/([^/]+)/assign", (b, q, [wid]) => {
+    const w = get(wid); mustBe(LEADS.includes(me.role));
+    w.assigned = b.user_ids.map(tech); log(me, "wo.assigned"); return out(w);
+  });
+  const amendOk = (w, reason) => {
+    if (w.status === "cancelled") stop(400, "wo.err.cancelled");
+    if (SIGNED.includes(w.status)) {
+      mustBe(LEADS.includes(me.role) || (w.signoff && w.signoff.user_id === me.user_id), "wo.err.cannot_amend");
+      if (!(reason || "").trim()) stop(400, "wo.err.need_reason");
+      return { amended: true, reason: reason.trim() };
+    }
+    return {};
+  };
+  on("POST", "/api/workorders/([^/]+)/labor", (b, q, [wid]) => {
+    const w = get(wid); mustBe(TECHS.includes(me.role));
+    const extra = amendOk(w, b.reason);
+    let who = { user_id: me.user_id, name: me.name };
+    if (b.user_id && b.user_id !== me.user_id) { mustBe(LEADS.includes(me.role), "wo.err.own_labor_only"); who = tech(b.user_id); }
+    const [hours, e] = numOr(b.hours, "hours", 24, false);
+    if (e || hours == null) stopMany([e || tx("err.required", { field: tx("field.hours") })]);
+    w.labor.push({ ...stamp(), ...who, hours, date: b.date || today(), note: b.note || null, ...extra });
+    log(me, "wo.labor"); return out(w);
+  });
+  on("POST", "/api/workorders/([^/]+)/parts", (b, q, [wid]) => {
+    const w = get(wid); mustBe(TECHS.includes(me.role));
+    const extra = amendOk(w, b.reason);
+    const errors = [];
+    if (!b.part_number && !b.description) errors.push(tx("err.part_needs_name"));
+    const [qty, e1] = numOr(b.qty, "qty", 100000, false); if (e1 || qty == null) errors.push(e1 || tx("err.required", { field: tx("field.qty") }));
+    const [cost, e2] = numOr(b.unit_cost, "unit_cost", 1e6); if (e2) errors.push(e2);
+    if (errors.length) stopMany(errors);
+    w.parts.push({ ...stamp(), part_number: b.part_number, description: b.description, qty, unit_cost: cost, ...extra });
+    log(me, "wo.part"); return out(w);
+  });
+  on("POST", "/api/workorders/([^/]+)/vendor", (b, q, [wid]) => {
+    const w = get(wid); mustBe(TECHS.includes(me.role));
+    const extra = amendOk(w, b.reason);
+    if (!(b.vendor || "").trim()) stopMany([tx("err.required", { field: tx("field.vendor") })]);
+    const [amount, e] = numOr(b.amount, "amount", 1e7); if (e) stopMany([e]);
+    w.vendor.push({ ...stamp(), vendor: b.vendor, invoice_number: b.invoice_number, description: b.description, amount, ...extra });
+    log(me, "wo.vendor"); return out(w);
+  });
+  on("POST", "/api/workorders/([^/]+)/void", (b, q, [wid]) => {
+    const w = get(wid); mustBe(TECHS.includes(me.role));
+    if (!(b.reason || "").trim()) stop(400, "wo.err.need_reason");
+    if (SIGNED.includes(w.status)) mustBe(LEADS.includes(me.role) || (w.signoff && w.signoff.user_id === me.user_id), "wo.err.cannot_amend");
+    const l = (w[b.kind] || []).find((x) => x.line_id === b.line_id && !x.voided);
+    if (!l) stop(404, "wo.err.no_line");
+    if (!LEADS.includes(me.role) && l.by !== me.user_id) stop(403, "wo.err.own_lines_only");
+    Object.assign(l, { voided: true, void_reason: b.reason.trim(), voided_by: me.name, voided_at: now() });
+    log(me, "wo.void"); return out(w);
+  });
+  on("POST", "/api/workorders/([^/]+)/notes", (b, q, [wid]) => {
+    const w = get(wid); mustBe(STAFF.includes(me.role));
+    if (!(b.text || "").trim()) stopMany([tx("err.required", { field: tx("field.note") })]);
+    w.notes.push({ ...stamp(), text: b.text.trim() }); log(me, "wo.note"); return out(w);
+  });
+  const PHOTOS = {};
+  on("POST", "/api/workorders/([^/]+)/photos", (b, q, [wid]) => {
+    const w = get(wid); mustBe(STAFF.includes(me.role));
+    const pid = id(); PHOTOS[pid] = b.get("file");
+    w.photos.push({ ...stamp(), photo_id: pid, caption: b.get("caption") || null }); log(me, "wo.photo"); return out(w);
+  });
+  on("GET", "/api/workorders/([^/]+)/photos/([^/]+)", (b, q, [, pid]) => PHOTOS[pid]);
+  on("POST", "/api/workorders/([^/]+)/complete", (b, q, [wid]) => {
+    const w = get(wid);
+    const errors = [];
+    if (!ACTIVE.includes(w.status)) errors.push(tx("wo.err.not_open"));
+    const worked = w.assigned.some((a) => a.user_id === me.user_id) || w.labor.some((l) => l.user_id === me.user_id && !l.voided);
+    if (!(LEADS.includes(me.role) || (me.role === "mechanic" && worked))) errors.push(tx("wo.err.cannot_sign"));
+    if (!w.correction) errors.push(tx("wo.err.need_correction"));
+    if (!b.typed_name || norm(b.typed_name) !== norm(me.name)) errors.push(tx("wo.err.name_mismatch", { name: me.name }));
+    if (errors.length) stopMany(errors);
+    w.signoff = { user_id: me.user_id, name: me.name, role: me.role, typed_name: b.typed_name.trim(), at: now(),
+      statement: tx("wo.signoff.statement"), statement_lang: lang };
+    step(w, "complete", me, 0); log(me, "wo.signed");
+    const warnings = [];
+    if (!w.labor.some((l) => !l.voided)) warnings.push(tx("wo.warn.no_labor"));
+    if (!w.cause) warnings.push(tx("wo.warn.no_cause"));
+    return { ...out(w), warnings };
+  });
+  on("POST", "/api/workorders/([^/]+)/close", (b, q, [wid]) => {
+    const w = get(wid); mustBe(LEADS.includes(me.role));
+    if (w.status !== "complete") stop(400, "wo.err.close_needs_complete");
+    w.closed = { user_id: me.user_id, name: me.name, at: now() }; step(w, "closed", me, 0); log(me, "wo.closed"); return out(w);
+  });
+  on("POST", "/api/workorders/([^/]+)/cancel", (b, q, [wid]) => {
+    const w = get(wid); mustBe(LEADS.includes(me.role));
+    if (!(b.reason || "").trim()) stop(400, "wo.err.need_reason");
+    if (!ACTIVE.includes(w.status)) stop(400, "wo.err.not_open");
+    w.cancelled = { user_id: me.user_id, name: me.name, at: now(), reason: b.reason.trim() };
+    step(w, "cancelled", me, 0); log(me, "wo.cancelled"); return out(w);
+  });
+  on("POST", "/api/workorders/([^/]+)/amend", (b, q, [wid]) => {
+    const w = get(wid);
+    if (!SIGNED.includes(w.status)) stop(400, "wo.err.amend_needs_signed");
+    mustBe(LEADS.includes(me.role) || (w.signoff && w.signoff.user_id === me.user_id), "wo.err.cannot_amend");
+    if (!(b.reason || "").trim()) stop(400, "wo.err.need_reason");
+    let v = (b.value || "").trim() || null;
+    if (["odometer", "engine_hours"].includes(b.field) && v !== null) v = Number(v);
+    if (w[b.field] === v) stop(400, "wo.err.no_change");
+    w.amendments.push({ ...stamp(), field: b.field, before: w[b.field], after: v, reason: b.reason.trim() });
+    w[b.field] = v; log(me, "wo.amended"); return out(w);
+  });
+
+  // ---------------------------------------------------------- the fetch stand-in
+  window.DTR_FETCH = async (path, opts = {}) => {
+    const url = new URL(path, "https://preview.local");
+    const method = (opts.method || "GET").toUpperCase();
+    lang = (opts.headers && opts.headers["X-Lang"]) || "en";
+    let body = {};
+    if (opts.body instanceof FormData) body = opts.body;
+    else if (opts.body) body = JSON.parse(opts.body);
+    for (const [m, re, fn] of routes) {
+      const hit = method === m && url.pathname.match(re);
+      if (!hit) continue;
+      try { return reply(200, await fn(body, url.searchParams, hit.slice(1))); }
+      catch (e) {
+        if (e instanceof Stop) return reply(e.status, { detail: e.detail });
+        console.error(e); return reply(500, { detail: "Preview error" });
+      }
+    }
+    return reply(404, { detail: "Not in preview" });
+  };
+
+  // Quick sign-in buttons for each role.
+  const QUICK = [["u_jose", "mechanic"], ["u_harp", "mechanic"], ["u_lead", "shop_manager"],
+                 ["u_fran", "fleet_manager"], ["u_admin", "admin"], ["u_ops", "platform_operator"]];
+  window.DTR_PREVIEW = {
+    loginHelp: () => `<div class="quick">
+      ${QUICK.map(([u, r]) => `<button type="button" class="secondary wide" data-quick="${u}">
+        <b>${P[u].name}</b> · ${(L()[document.documentElement.lang] || L().en)["role." + r]}</button>`).join("")}</div>`,
+    wireLogin: () => document.querySelectorAll("[data-quick]").forEach((b) => (b.onclick = () => {
+      document.querySelector("#em").value = P[b.dataset.quick].email;
+      document.querySelector("#pw").value = "preview";
+      document.querySelector("#f").requestSubmit();
+    })),
+  };
+})();
+
+</script>
+<script>
+// DTR screens. Plain JavaScript, no build step.
+// The server checks every permission; hiding a button here is only a
+// convenience so people don't see things they can't use.
+// Every word on screen comes from /static/locales/<lang>.json via t().
+"use strict";
+
+const S = { token: null, me: null, orgNames: {}, meta: null, lang: "en",
+            dict: {}, en: {}, current: null };
+const $ = (sel) => document.querySelector(sel);
+const view = $("#view");
+const LANGS = { en: "English", es: "Español", hi: "हिन्दी", ur: "اردو" };
+const RTL = ["ur"];
+
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ok */ } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* ok */ } },
+};
+S.token = store.get("dtr_token");
+
+// ---------------------------------------------------------------- words
+
+function t(key, params) {
+  let s = S.dict[key] ?? S.en[key] ?? key;
+  if (params) for (const [k, v] of Object.entries(params)) s = s.split("{" + k + "}").join(v);
+  return s;
+}
+
+async function loadLang(lang) {
+  if (!LANGS[lang]) lang = "en";
+  const get = async (l) => {
+    if (window.DTR_LOCALES) return window.DTR_LOCALES[l] || {};
+    const r = await fetch(`/static/locales/${l}.json`);
+    return r.ok ? r.json() : {};
+  };
+  if (!Object.keys(S.en).length) S.en = await get("en");
+  S.dict = lang === "en" ? S.en : await get(lang);
+  S.lang = lang;
+  store.set("dtr_lang", lang);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = RTL.includes(lang) ? "rtl" : "ltr";
+  $("#signout").textContent = t("app.sign_out");
+}
+
+function guessLang() {
+  const saved = store.get("dtr_lang");
+  if (saved && LANGS[saved]) return saved;
+  const nav = (navigator.language || "en").slice(0, 2).toLowerCase();
+  return LANGS[nav] ? nav : "en";
+}
+
+function langPicker(id) {
+  return `<select id="${id}" class="lang" aria-label="${esc(t("app.language"))}">${
+    Object.entries(LANGS).map(([k, v]) =>
+      `<option value="${k}" ${k === S.lang ? "selected" : ""}>${v}</option>`).join("")}</select>`;
+}
+
+function wirePicker(id, after) {
+  $("#" + id).onchange = async (ev) => {
+    await loadLang(ev.target.value);
+    if (S.token && S.me) {
+      api("/api/me", { method: "PATCH", json: { language: S.lang } }).catch(() => {});
+    }
+    after();
+  };
+}
+
+// ---------------------------------------------------------------- helpers
+
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function toast(text) {
+  const el = $("#toast");
+  el.textContent = text; el.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => (el.hidden = true), 3200);
+}
+
+async function api(path, opts = {}) {
+  const headers = { "X-Lang": S.lang, ...(opts.headers || {}) };
+  if (S.token) headers.Authorization = "Bearer " + S.token;
+  if (opts.json !== undefined) {
+    headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(opts.json);
+  }
+  const r = await (window.DTR_FETCH || fetch)(path, { ...opts, headers });
+  if (opts.raw) {
+    if (!r.ok) throw new Error(t("app.something_wrong"));
+    return r;
+  }
+  let data = null;
+  try { data = await r.json(); } catch (e) { /* empty body */ }
+  if (r.status === 401 && path !== "/api/auth/login") { signOut(); }
+  if (!r.ok) {
+    const d = data && data.detail;
+    const err = new Error(typeof d === "string" ? d : t("app.something_wrong"));
+    err.detail = d; throw err;
+  }
+  return data;
+}
+
+function msgBox(kind, title, items) {
+  if (!title && !(items && items.length)) return "";
+  const list = items && items.length
+    ? "<ul>" + items.map((i) => `<li>${esc(i)}</li>`).join("") + "</ul>" : "";
+  return `<div class="msg ${kind}">${esc(title || "")}${list}</div>`;
+}
+
+function errorHtml(e) {
+  if (e.detail && e.detail.errors) {
+    return msgBox("bad", t("app.fix_first"), e.detail.errors) +
+           msgBox("warn", "", e.detail.warnings);
+  }
+  return msgBox("bad", e.message);
+}
+
+const can = (p) => S.me && S.me.can.includes(p);
+const role = () => S.me && S.me.user.role;
+const num = (n) => (n == null ? "" : Number(n).toLocaleString(S.lang));
+const money = (n) => new Intl.NumberFormat(S.lang, { style: "currency", currency: "USD" })
+  .format(n || 0);
+const when = (d) => {
+  if (!d) return "";
+  const s = String(d);
+  const dt = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + "Z");
+  return dt.toLocaleString(S.lang, { dateStyle: "medium", timeStyle: "short" });
+};
+const day = (d) => (d ? new Date(d + "T12:00:00").toLocaleDateString(S.lang,
+  { dateStyle: "medium" }) : "");
+const val = (id) => { const el = $("#" + id); return el ? el.value.trim() || null : null; };
+const options = (list, prefix, sel, blank) =>
+  (blank ? `<option value="">${esc(t("app.choose"))}</option>` : "") +
+  list.map((k) => `<option value="${esc(k)}" ${k === sel ? "selected" : ""}>${
+    esc(t(prefix + k))}</option>`).join("");
+
+// ---------------------------------------------------------------- sign-in
+
+function showLogin(error) {
+  $("#top").hidden = true; $("#tabs").hidden = true;
+  view.innerHTML = `
+    <div class="login card">
+      <div class="row"><h1 class="grow">${esc(t("login.title"))}</h1>${langPicker("lp")}</div>
+      ${window.DTR_PREVIEW ? msgBox("warn", t("app.preview_banner")) : ""}
+      ${error ? msgBox("bad", error) : ""}
+      <form id="f">
+        <label for="em">${esc(t("login.email"))}</label>
+        <input id="em" type="email" autocomplete="username" required dir="ltr">
+        <label for="pw">${esc(t("login.password"))}</label>
+        <input id="pw" type="password" autocomplete="current-password" required dir="ltr">
+        <p><button class="primary wide">${esc(t("login.button"))}</button></p>
+      </form>
+      ${window.DTR_PREVIEW ? window.DTR_PREVIEW.loginHelp() : ""}
+    </div>`;
+  wirePicker("lp", () => showLogin(error));
+  if (window.DTR_PREVIEW) window.DTR_PREVIEW.wireLogin();
+  $("#f").onsubmit = async (ev) => {
+    ev.preventDefault();
+    await signIn($("#em").value, $("#pw").value);
+  };
+}
+
+async function signIn(email, password) {
+  try {
+    const r = await api("/api/auth/login", { method: "POST", json: { email, password } });
+    S.token = r.token;
+    store.set("dtr_token", r.token);
+    // The language picked on the sign-in screen wins, and is saved to the
+    // person so it follows them to any phone.
+    if (r.user.language !== S.lang) {
+      await api("/api/me", { method: "PATCH", json: { language: S.lang } }).catch(() => {});
+    }
+    await start();
+  } catch (e) { showLogin(e.message); }
+}
+
+function signOut() {
+  S.token = null; S.me = null; S.orgNames = {}; S.meta = null;
+  store.del("dtr_token");
+  showLogin();
+}
+$("#signout").onclick = signOut;
+
+// ---------------------------------------------------------------- tabs
+
+const TABS = {
+  platform_operator: ["companies", "units"],
+  admin: ["workorders", "units", "people", "log"],
+  fleet_manager: ["workorders", "units", "people"],
+  shop_manager: ["workorders", "units", "people"],
+  mechanic: ["workorders", "units"],
+};
+const SCREENS = {};
+
+function go(name, arg) {
+  S.current = [name, arg];
+  document.querySelectorAll("#tabs button").forEach((b) =>
+    b.classList.toggle("on", b.dataset.tab === name));
+  window.scrollTo(0, 0);
+  SCREENS[name](arg).catch((e) => { view.innerHTML = errorHtml(e); });
+}
+
+function drawChrome() {
+  $("#org-name").textContent = S.me.org ? S.me.org.name : t("app.apex_console");
+  $("#hdr-lang").innerHTML = langPicker("hl");
+  wirePicker("hl", () => { drawChrome(); go(...S.current); });
+  const tabs = TABS[role()] || [];
+  const nav = $("#tabs");
+  nav.innerHTML = tabs.map((k) => `<button data-tab="${k}">${esc(t("tab." + k))}</button>`).join("");
+  nav.hidden = tabs.length < 2;
+  nav.querySelectorAll("button").forEach((b) => (b.onclick = () => go(b.dataset.tab)));
+}
+
+async function start() {
+  if (!S.token) return showLogin();
+  try { S.me = await api("/api/me"); } catch (e) { return; }
+  if (S.me.user.language && S.me.user.language !== S.lang) await loadLang(S.me.user.language);
+  $("#top").hidden = false;
+  if (role() === "platform_operator") {
+    const r = await api("/api/operator/orgs");
+    r.orgs.forEach((o) => (S.orgNames[o.org_id] = o.name));
+  } else {
+    S.meta = await api("/api/workorders/meta");
+  }
+  drawChrome();
+  go((TABS[role()] || ["units"])[0]);
+}
+
+// ---------------------------------------------------------------- work orders
+
+const PRIORITY_CLASS = { urgent: "p-urgent", high: "p-high", normal: "", low: "" };
+
+SCREENS.workorders = async (state = {}) => {
+  const filter = state.filter || (role() === "mechanic" ? "mine" : "active");
+  const q = filter === "mine" ? "view=active&mine=true" : `view=${filter}`;
+  const r = await api(`/api/workorders?${q}`);
+  const chips = ["mine", "active", "complete", "closed", "cancelled"];
+  view.innerHTML = `
+    <div class="row"><h1 class="grow">${esc(t("wo.title"))}</h1>
+      ${S.meta.may.create ? `<button class="primary" id="new">${esc(t("wo.new"))}</button>` : ""}</div>
+    <div class="chips">${chips.map((c) => `<button data-f="${c}" class="${c === filter ? "on" : ""}">${
+      esc(t("wo.filter." + c))}</button>`).join("")}</div>
+    ${r.work_orders.map(woRow).join("") || `<div class="card muted">${esc(t("wo.none"))}</div>`}`;
+  view.querySelectorAll("[data-f]").forEach((b) =>
+    (b.onclick = () => go("workorders", { filter: b.dataset.f })));
+  view.querySelectorAll("[data-wo]").forEach((b) =>
+    (b.onclick = () => SCREENS.wo(b.dataset.wo)));
+  if (S.meta.may.create) $("#new").onclick = () => SCREENS.newWo();
+};
+
+function woRow(w) {
+  const techs = (w.assigned || []).map((a) => a.name).join(", ") || t("wo.unassigned");
+  return `<button class="card list-item" data-wo="${esc(w.work_order_id)}">
+    <span class="grow">
+      <span class="row tight"><b>${esc(t("wo.number", { n: String(w.number).padStart(4, "0") }))}</b>
+        <span class="pill">${esc(t("wo.unit_line", { unit: w.unit_number }))}</span>
+        <span class="pill ${PRIORITY_CLASS[w.priority] || ""}">${esc(t("priority." + w.priority))}</span>
+        <span class="pill st-${esc(w.status)}">${esc(t("status." + w.status))}</span></span>
+      <span class="clip">${esc(w.complaint)}</span>
+      <span class="muted">${esc(t("category." + w.category))} · ${esc(techs)}</span>
+    </span><span class="muted chev">›</span></button>`;
+}
+
+SCREENS.newWo = async (preset = {}) => {
+  const units = (await api("/api/assets")).units;
+  const m = S.meta;
+  view.innerHTML = `
+    <button class="link" id="back">‹ ${esc(t("wo.title"))}</button>
+    <h1>${esc(t("wo.new_title"))}</h1><div id="out"></div>
+    <form id="f" class="card">
+      <label for="asset_id">${esc(t("field.asset_id"))}</label>
+      <select id="asset_id" required><option value="">${esc(t("app.choose"))}</option>${
+        units.map((u) => `<option value="${esc(u.asset_id)}" ${u.asset_id === preset.asset_id ? "selected" : ""}>${
+          esc(u.unit_number)} · ${esc(t("type." + u.asset_type))}${u.make ? " · " + esc(u.make) : ""}</option>`).join("")}</select>
+      <label for="complaint">${esc(t("field.complaint"))} — ${esc(t("wo.complaint_help"))}</label>
+      <textarea id="complaint" rows="3" required></textarea>
+      <div class="two">
+        <div><label for="priority">${esc(t("field.priority"))}</label>
+          <select id="priority">${options(m.priorities, "priority.", "normal")}</select></div>
+        <div><label for="category">${esc(t("field.category"))}</label>
+          <select id="category">${options(m.categories, "category.", "other")}</select></div>
+      </div>
+      <label for="source">${esc(t("field.source"))}</label>
+      <select id="source">${options(m.sources, "source.", "manual")}</select>
+      <label for="source_ref">${esc(t("field.source_ref"))}</label><input id="source_ref">
+      <div class="two">
+        <div><label for="odometer">${esc(t("field.odometer"))}</label><input id="odometer" inputmode="numeric" dir="ltr"></div>
+        <div><label for="engine_hours">${esc(t("field.engine_hours"))}</label><input id="engine_hours" inputmode="decimal" dir="ltr"></div>
+      </div>
+      <p><button class="primary wide">${esc(t("wo.create"))}</button></p>
+    </form>`;
+  $("#back").onclick = () => go("workorders");
+  $("#f").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const body = {};
+    ["asset_id", "complaint", "priority", "category", "source", "source_ref",
+     "odometer", "engine_hours"].forEach((k) => { const v = val(k); if (v !== null) body[k] = v; });
+    try {
+      const wo = await api("/api/workorders", { method: "POST", json: body });
+      toast(t("wo.created")); SCREENS.wo(wo.work_order_id);
+    } catch (e) { $("#out").innerHTML = errorHtml(e); window.scrollTo(0, 0); }
+  };
+};
+
+SCREENS.wo = async (id) => {
+  S.current = ["wo", id];
+  const w = await api(`/api/workorders/${id}`);
+  const m = S.meta || { may: {}, techs: [] };
+  const active = ["open", "in_progress", "waiting_parts"].includes(w.status);
+  const signed = ["complete", "closed"].includes(w.status);
+  const me = S.me.user;
+  const isSigner = w.signoff && w.signoff.user_id === me.user_id;
+  const mayAmend = signed && (m.may.lead || isSigner);
+  const mayLines = (active && m.may.work) || mayAmend;
+  const no = String(w.number).padStart(4, "0");
+
+  const textBlock = (f) => `<div class="field"><div class="lbl">${esc(t("field." + f))}</div>
+    <div class="${w[f] ? "pre" : "muted"}">${esc(w[f] || t("wo.not_entered"))}</div></div>`;
+
+  const lineList = (kind, render) => (w[kind] || []).map((l) => `
+    <div class="line ${l.voided ? "voided" : ""}">
+      <div class="grow">${render(l)}
+        <div class="muted small">${esc(t("app.by_at", { name: l.by_name, when: when(l.at) }))}</div>
+        ${l.amended ? `<div class="small warn-text">${esc(t("wo.amended_line", { reason: l.reason }))}</div>` : ""}
+        ${l.voided ? `<div class="small bad-text">${esc(t("wo.voided", { reason: l.void_reason, name: l.voided_by }))}</div>` : ""}
+      </div>
+      ${!l.voided && mayLines && (m.may.lead || l.by === me.user_id)
+        ? `<button class="link small" data-void="${kind}:${esc(l.line_id)}">${esc(t("wo.void"))}</button>` : ""}
+    </div>`).join("") || `<div class="muted">${esc(t("app.none"))}</div>`;
+
+  const reasonField = signed ? `<label for="REASON">${esc(t("wo.reason_signed"))}</label><input id="REASON" required>` : "";
+  const rf = (id) => reasonField.split("REASON").join(id);
+
+  view.innerHTML = `
+    <button class="link" id="back">‹ ${esc(t("wo.title"))}</button>
+    <div class="row"><h1 class="grow">${esc(t("wo.number", { n: no }))}</h1>
+      <span class="pill st-${esc(w.status)}">${esc(t("status." + w.status))}</span></div>
+    <div class="row tight" style="margin-bottom:8px">
+      <button class="pill linkish" id="unit">${esc(t("wo.unit_line", { unit: w.unit_number }))} · ${esc(t("type." + w.asset_type))}</button>
+      <span class="pill ${PRIORITY_CLASS[w.priority] || ""}">${esc(t("priority." + w.priority))}</span>
+      <span class="pill">${esc(t("category." + w.category))}</span>
+      <span class="pill">${esc(t("source." + w.source))}${w.source_ref ? " · " + esc(w.source_ref) : ""}</span>
+    </div>
+    <p class="muted small">${esc(t("wo.opened_by", { name: w.created_name, when: when(w.created_at) }))}</p>
+    <div id="out"></div>
+
+    <h2>${esc(t("wo.section.job"))}</h2>
+    <div class="card">
+      ${textBlock("complaint")}${textBlock("cause")}${textBlock("correction")}
+      ${w.odometer != null || w.engine_hours != null ? `<div class="muted small">${
+        w.odometer != null ? esc(t("field.odometer")) + ": " + num(w.odometer) : ""}${
+        w.engine_hours != null ? " · " + esc(t("field.engine_hours")) + ": " + num(w.engine_hours) : ""}</div>` : ""}
+      ${active && m.may.work ? `<p><button class="secondary" id="edit">${esc(t("wo.edit_job"))}</button></p>` : ""}
+      <div id="editbox"></div>
+    </div>
+
+    ${active && m.may.work ? `<h2>${esc(t("wo.section.status"))}</h2><div class="row">${
+      ({ open: ["in_progress", "waiting_parts"], in_progress: ["waiting_parts", "open"],
+         waiting_parts: ["in_progress", "open"] }[w.status] || []).map((s) =>
+        `<button class="secondary" data-move="${s}">${esc(t("wo.move." + s))}</button>`).join("")}</div>` : ""}
+
+    <h2>${esc(t("wo.section.techs"))}</h2>
+    <div class="card">
+      <div>${esc((w.assigned || []).map((a) => a.name).join(", ") || t("wo.unassigned"))}</div>
+      ${active && m.may.lead ? `<div class="checks">${m.techs.map((p) => `<label class="check"><input type="checkbox" value="${esc(p.user_id)}" ${
+        (w.assigned || []).some((a) => a.user_id === p.user_id) ? "checked" : ""}> ${esc(p.name)}</label>`).join("")}</div>
+        <button class="secondary" id="assign">${esc(t("wo.assign"))}</button>` : ""}
+    </div>
+
+    <h2>${esc(t("wo.section.labor"))} <span class="muted small">${esc(t("wo.total_hours", { n: num(w.totals.labor_hours) }))}</span></h2>
+    <div class="card">
+      ${lineList("labor", (l) => `<b>${esc(l.name)}</b> · ${esc(t("wo.hours_value", { n: num(l.hours) }))} · ${esc(day(l.date))}${
+        l.note ? `<div>${esc(l.note)}</div>` : ""}`)}
+      ${mayLines ? `<details><summary>${esc(t("wo.add_labor"))}</summary>
+        <form id="fl">
+          ${m.may.lead && m.techs.length ? `<label for="l_user">${esc(t("field.tech"))}</label>
+            <select id="l_user">${m.techs.map((p) => `<option value="${esc(p.user_id)}" ${p.user_id === me.user_id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select>` : ""}
+          <div class="two"><div><label for="l_hours">${esc(t("field.hours"))}</label><input id="l_hours" inputmode="decimal" required dir="ltr"></div>
+          <div><label for="l_date">${esc(t("field.date"))}</label><input id="l_date" type="date" value="${new Date().toISOString().slice(0, 10)}"></div></div>
+          <label for="l_note">${esc(t("field.note"))}</label><input id="l_note">
+          ${rf("l_reason")}
+          <p><button class="primary">${esc(t("wo.add_labor"))}</button></p></form></details>` : ""}
+    </div>
+
+    <h2>${esc(t("wo.section.parts"))} <span class="muted small">${esc(t("wo.parts_total", { amount: money(w.totals.parts_cost) }))}</span></h2>
+    <div class="card">
+      ${lineList("parts", (l) => `<b>${esc(l.part_number || "")}</b> ${esc(l.description || "")} · ${esc(t("field.qty"))} ${num(l.qty)}${
+        l.unit_cost != null ? " × " + money(l.unit_cost) : ""}`)}
+      ${mayLines ? `<details><summary>${esc(t("wo.add_part"))}</summary>
+        <form id="fp">
+          <div class="two"><div><label for="p_pn">${esc(t("field.part_number"))}</label><input id="p_pn" dir="ltr"></div>
+          <div><label for="p_qty">${esc(t("field.qty"))}</label><input id="p_qty" inputmode="decimal" required dir="ltr"></div></div>
+          <label for="p_desc">${esc(t("field.description"))}</label><input id="p_desc">
+          <label for="p_cost">${esc(t("field.unit_cost"))}</label><input id="p_cost" inputmode="decimal" dir="ltr">
+          ${rf("p_reason")}
+          <p><button class="primary">${esc(t("wo.add_part"))}</button></p></form></details>` : ""}
+    </div>
+
+    <h2>${esc(t("wo.section.vendor"))} <span class="muted small">${esc(t("wo.vendor_total", { amount: money(w.totals.vendor_cost) }))}</span></h2>
+    <div class="card">
+      ${lineList("vendor", (l) => `<b>${esc(l.vendor)}</b>${l.invoice_number ? " · " + esc(l.invoice_number) : ""}${
+        l.amount != null ? " · " + money(l.amount) : ""}${l.description ? `<div>${esc(l.description)}</div>` : ""}`)}
+      ${mayLines ? `<details><summary>${esc(t("wo.add_vendor"))}</summary>
+        <form id="fv">
+          <label for="v_vendor">${esc(t("field.vendor"))}</label><input id="v_vendor" required>
+          <div class="two"><div><label for="v_inv">${esc(t("field.invoice_number"))}</label><input id="v_inv" dir="ltr"></div>
+          <div><label for="v_amt">${esc(t("field.amount"))}</label><input id="v_amt" inputmode="decimal" dir="ltr"></div></div>
+          <label for="v_desc">${esc(t("field.description"))}</label><input id="v_desc">
+          ${rf("v_reason")}
+          <p><button class="primary">${esc(t("wo.add_vendor"))}</button></p></form></details>` : ""}
+    </div>
+
+    <h2>${esc(t("wo.section.photos"))}</h2>
+    <div class="card">
+      <div class="photos">${(w.photos || []).map((p) => `<figure><img data-photo="${esc(p.photo_id)}" alt="${esc(p.caption || "")}">
+        ${p.caption ? `<figcaption>${esc(p.caption)}</figcaption>` : ""}</figure>`).join("") || `<span class="muted">${esc(t("app.none"))}</span>`}</div>
+      ${m.may.note && w.status !== "cancelled" ? `<label class="secondary filebtn">${esc(t("wo.add_photo"))}
+        <input type="file" id="photo" accept="image/*" capture="environment" hidden></label>` : ""}
+    </div>
+
+    <h2>${esc(t("wo.section.notes"))}</h2>
+    <div class="card">
+      ${(w.notes || []).map((n) => `<div class="line"><div class="grow"><div class="pre">${esc(n.text)}</div>
+        <div class="muted small">${esc(t("app.by_at", { name: n.by_name, when: when(n.at) }))}</div></div></div>`).join("") ||
+        `<div class="muted">${esc(t("app.none"))}</div>`}
+      ${m.may.note ? `<form id="fn" class="row" style="margin-top:8px"><input id="n_text" class="grow" required>
+        <button class="secondary">${esc(t("wo.add_note"))}</button></form>` : ""}
+    </div>
+
+    <h2>${esc(t("wo.section.signoff"))}</h2>
+    <div class="card">
+      ${w.signoff ? `<div class="msg ok">${esc(t("wo.signed_by", { name: w.signoff.name, when: when(w.signoff.at) }))}
+          <div class="small">“${esc(w.signoff.statement)}”</div></div>` : ""}
+      ${w.closed ? `<div class="msg ok">${esc(t("wo.closed_by", { name: w.closed.name, when: when(w.closed.at) }))}</div>` : ""}
+      ${w.cancelled ? `<div class="msg bad">${esc(t("wo.cancelled_by", { name: w.cancelled.name, when: when(w.cancelled.at), reason: w.cancelled.reason }))}</div>` : ""}
+      ${active && m.may.work ? `
+        <p><b>${esc(t("wo.signoff_statement_title"))}</b></p>
+        <blockquote>${esc(t("wo.signoff.statement"))}</blockquote>
+        <label for="s_name">${esc(t("wo.signoff_type_name", { name: me.name }))}</label>
+        <input id="s_name" autocomplete="off" autocapitalize="words" spellcheck="false">
+        <p><button class="primary wide" id="sign">${esc(t("wo.sign"))}</button></p>` : ""}
+      ${w.status === "complete" && m.may.lead ? `<p><button class="primary wide" id="close">${esc(t("wo.close"))}</button></p>` : ""}
+      ${active && m.may.lead ? `<details><summary>${esc(t("wo.cancel_job"))}</summary>
+        <p class="muted small">${esc(t("wo.cancel_help"))}</p>
+        <label for="c_reason">${esc(t("wo.cancel_reason"))}</label><input id="c_reason">
+        <p><button class="secondary" id="cancel">${esc(t("wo.cancel_job"))}</button></p></details>` : ""}
+    </div>
+
+    ${(w.amendments || []).length || mayAmend ? `<h2>${esc(t("wo.section.amendments"))}</h2><div class="card">
+      ${(w.amendments || []).map((a) => `<div class="line"><div class="grow small">${esc(t("wo.amendment_line", {
+        field: t("field." + a.field), before: a.before ?? "", after: a.after ?? "", reason: a.reason,
+        name: a.by_name, when: when(a.at) }))}</div></div>`).join("")}
+      ${mayAmend ? `<details><summary>${esc(t("wo.amend_title"))}</summary>
+        <p class="muted small">${esc(t("wo.amend_help"))}</p>
+        <label for="a_field">${esc(t("wo.amend_field"))}</label>
+        <select id="a_field">${["complaint", "cause", "correction", "odometer", "engine_hours"].map((f) =>
+          `<option value="${f}">${esc(t("field." + f))}</option>`).join("")}</select>
+        <label for="a_value">${esc(t("wo.amend_value"))}</label><textarea id="a_value" rows="2"></textarea>
+        <label for="a_reason">${esc(t("field.reason"))}</label><input id="a_reason">
+        <p><button class="secondary" id="amend">${esc(t("wo.amend"))}</button></p></details>` : ""}
+    </div>` : ""}
+
+    <h2>${esc(t("wo.section.history"))}</h2>
+    <div class="card small">${(w.history || []).map((h) => `<div>${esc(t("wo.history_line", {
+      to: t("status." + h.to), name: h.by_name, when: when(h.at) }))}</div>`).join("")}</div>`;
+
+  // --- wiring
+  const reload = () => SCREENS.wo(id);
+  const act = async (path, body, okMsg) => {
+    try {
+      const r = await api(`/api/workorders/${id}/${path}`, { method: "POST", json: body });
+      if (okMsg) toast(r.warnings && r.warnings.length ? okMsg + " " + r.warnings.join(" ") : okMsg);
+      reload();
+    } catch (e) { $("#out").innerHTML = errorHtml(e); window.scrollTo(0, 0); }
+  };
+  $("#back").onclick = () => go("workorders");
+  $("#unit").onclick = () => SCREENS.unit(w.asset_id);
+  view.querySelectorAll("[data-move]").forEach((b) =>
+    (b.onclick = () => act("status", { status: b.dataset.move })));
+  if ($("#assign")) $("#assign").onclick = () => act("assign", { user_ids:
+    [...view.querySelectorAll(".checks input:checked")].map((c) => c.value) }, t("wo.assigned_saved"));
+  if ($("#fl")) $("#fl").onsubmit = (ev) => { ev.preventDefault(); act("labor", {
+    user_id: val("l_user") || undefined, hours: val("l_hours"), date: val("l_date"),
+    note: val("l_note"), reason: val("l_reason") }); };
+  if ($("#fp")) $("#fp").onsubmit = (ev) => { ev.preventDefault(); act("parts", {
+    part_number: val("p_pn"), description: val("p_desc"), qty: val("p_qty"),
+    unit_cost: val("p_cost"), reason: val("p_reason") }); };
+  if ($("#fv")) $("#fv").onsubmit = (ev) => { ev.preventDefault(); act("vendor", {
+    vendor: val("v_vendor"), invoice_number: val("v_inv"), amount: val("v_amt"),
+    description: val("v_desc"), reason: val("v_reason") }); };
+  if ($("#fn")) $("#fn").onsubmit = (ev) => { ev.preventDefault(); act("notes", { text: val("n_text") }); };
+  // Voiding asks for the reason right on the line, not in a pop-up.
+  view.querySelectorAll("[data-void]").forEach((b) => (b.onclick = () => {
+    const [kind, line_id] = b.dataset.void.split(":");
+    const box = document.createElement("form");
+    box.className = "voidbox";
+    box.innerHTML = `<label for="vr_${line_id}">${esc(t("wo.void_reason"))}</label>
+      <div class="row"><input id="vr_${line_id}" class="grow" required>
+      <button class="secondary">${esc(t("wo.void"))}</button></div>`;
+    b.closest(".line").after(box);
+    b.remove();
+    box.querySelector("input").focus();
+    box.onsubmit = (ev) => { ev.preventDefault();
+      act("void", { kind, line_id, reason: box.querySelector("input").value }); };
+  }));
+  if ($("#sign")) $("#sign").onclick = () => act("complete", { typed_name: $("#s_name").value }, t("wo.signed_ok"));
+  if ($("#close")) $("#close").onclick = () => act("close", {}, t("wo.closed_ok"));
+  if ($("#cancel")) $("#cancel").onclick = () =>
+    act("cancel", { reason: $("#c_reason").value }, t("wo.cancelled_ok"));
+  if ($("#amend")) $("#amend").onclick = () => act("amend", { field: $("#a_field").value,
+    value: $("#a_value").value, reason: $("#a_reason").value }, t("wo.amended_ok"));
+  if ($("#edit")) $("#edit").onclick = () => {
+    $("#edit").hidden = true;
+    $("#editbox").innerHTML = `<form id="fe">
+      ${["complaint", "cause", "correction"].map((f) => `<label for="e_${f}">${esc(t("field." + f))}</label>
+        <textarea id="e_${f}" rows="3">${esc(w[f] || "")}</textarea>`).join("")}
+      <div class="two"><div><label for="e_priority">${esc(t("field.priority"))}</label>
+        <select id="e_priority">${options(m.priorities, "priority.", w.priority)}</select></div>
+        <div><label for="e_category">${esc(t("field.category"))}</label>
+        <select id="e_category">${options(m.categories, "category.", w.category)}</select></div></div>
+      <div class="two"><div><label for="e_odometer">${esc(t("field.odometer"))}</label>
+        <input id="e_odometer" value="${esc(w.odometer ?? "")}" inputmode="numeric" dir="ltr"></div>
+        <div><label for="e_engine_hours">${esc(t("field.engine_hours"))}</label>
+        <input id="e_engine_hours" value="${esc(w.engine_hours ?? "")}" inputmode="decimal" dir="ltr"></div></div>
+      <p class="row"><button class="primary">${esc(t("app.save"))}</button>
+        <button type="button" class="secondary" id="e_cancel">${esc(t("app.cancel"))}</button></p></form>`;
+    $("#e_cancel").onclick = reload;
+    $("#fe").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const body = {};
+      ["complaint", "cause", "correction", "priority", "category", "odometer", "engine_hours"]
+        .forEach((f) => (body[f] = val("e_" + f)));
+      try {
+        await api(`/api/workorders/${id}`, { method: "PATCH", json: body });
+        toast(t("app.saved")); reload();
+      } catch (e) { $("#out").innerHTML = errorHtml(e); window.scrollTo(0, 0); }
+    };
+  };
+  if ($("#photo")) $("#photo").onchange = async (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    toast(t("wo.uploading"));
+    try {
+      const blob = await shrink(file);
+      const fd = new FormData();
+      fd.append("file", blob, "photo.jpg");
+      fd.append("caption", "");
+      await api(`/api/workorders/${id}/photos`, { method: "POST", body: fd });
+      toast(t("wo.photo_added")); reload();
+    } catch (e) { $("#out").innerHTML = errorHtml(e); }
+  };
+  view.querySelectorAll("img[data-photo]").forEach(async (img) => {
+    try {
+      const r = await api(`/api/workorders/${id}/photos/${img.dataset.photo}`, { raw: true });
+      img.src = URL.createObjectURL(await r.blob());
+    } catch (e) { /* leave blank */ }
+  });
+};
+
+// Phone photos are big. Shrink to 1600 px on the long side as JPEG.
+async function shrink(file) {
+  const img = await new Promise((ok, bad) => {
+    const i = new Image(); i.onload = () => ok(i); i.onerror = bad;
+    i.src = URL.createObjectURL(file);
+  });
+  const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.82));
+}
+
+// ---------------------------------------------------------------- units
+
+SCREENS.units = async (state = {}) => {
+  const q = state.q || "", type = state.type || "", status = state.status || "active";
+  const r = await api(`/api/assets?q=${encodeURIComponent(q)}&type=${type}&status=${status}`);
+  const edit = can("edit_units"), imp = can("import_units");
+  view.innerHTML = `
+    <div class="row"><h1 class="grow">${esc(t("units.title"))}</h1>
+      ${imp ? `<button class="secondary" id="imp">${esc(t("units.import"))}</button>` : ""}
+      ${edit ? `<button class="primary" id="add">${esc(t("units.add"))}</button>` : ""}
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <input id="q" class="grow" placeholder="${esc(t("units.search"))}" value="${esc(q)}">
+      <select id="type" class="auto">
+        <option value="">${esc(t("units.all"))}</option>
+        <option value="power_unit" ${type === "power_unit" ? "selected" : ""}>${esc(t("units.power_units"))}</option>
+        <option value="trailer" ${type === "trailer" ? "selected" : ""}>${esc(t("units.trailers"))}</option>
+      </select>
+      <select id="status" class="auto">
+        <option value="active">${esc(t("units.in_fleet"))}</option>
+        <option value="retired" ${status === "retired" ? "selected" : ""}>${esc(t("units.left_fleet"))}</option>
+      </select>
+    </div>
+    <p class="muted">${esc(t("units.count", { n: num(r.units.length) }))}</p>
+    <div id="list">${r.units.map(unitRow).join("") ||
+      `<div class="card muted">${esc(t("units.none"))} ${imp ? esc(t("units.none_import")) : ""}</div>`}</div>`;
+  const reload = () => go("units", { q: $("#q").value, type: $("#type").value, status: $("#status").value });
+  let tm; $("#q").oninput = () => { clearTimeout(tm); tm = setTimeout(reload, 350); };
+  $("#type").onchange = reload; $("#status").onchange = reload;
+  if (edit) $("#add").onclick = () => SCREENS.unitForm();
+  if (imp) $("#imp").onclick = () => SCREENS.importUnits();
+  view.querySelectorAll("[data-id]").forEach((b) => (b.onclick = () => SCREENS.unit(b.dataset.id)));
+};
+
+function unitRow(u) {
+  const sub = [u.model_year, u.make, u.model].filter(Boolean).join(" ");
+  const org = S.orgNames[u.org_id] ? ` · ${esc(S.orgNames[u.org_id])}` : "";
+  return `<button class="card list-item" data-id="${esc(u.asset_id)}">
+    <span class="grow"><span class="big">${esc(u.unit_number)}</span>
+      <span class="pill">${esc(t("type." + u.asset_type))}</span><br>
+      <span class="muted">${esc(sub) || esc(t("units.no_make_year"))}${org}</span></span>
+    <span class="muted chev">›</span></button>`;
+}
+
+SCREENS.unit = async (id) => {
+  S.current = ["unit", id];
+  const u = await api(`/api/assets/${id}`);
+  const edit = can("edit_units") && u.status === "active";
+  const rows = [
+    [t("field.asset_type"), esc(t("type." + u.asset_type))],
+    [t("field.vin"), `<span dir="ltr">${esc(u.vin || t("units.vin_missing"))}</span>`],
+    [t("field.model_year"), esc(u.model_year)], [t("field.make"), esc(u.make)],
+    [t("field.model"), esc(u.model)],
+    [t("field.plate"), esc([u.plate, u.plate_state].filter(Boolean).join(" "))],
+    [t("field.owner"), esc(u.owned_by_carrier ? t("units.company_owned")
+      : t("units.furnished_by", { name: u.furnished_by }))],
+    [t("field.odometer"), u.odometer != null ? esc(t("units.odometer_value",
+      { n: num(u.odometer), name: u.odometer_by, when: when(u.odometer_at) })) : ""],
+    [t("field.engine_hours"), u.engine_hours != null ? esc(t("units.hours_value",
+      { n: num(u.engine_hours), name: u.engine_hours_by, when: when(u.engine_hours_at) })) : ""],
+    [t("field.notes"), esc(u.notes)],
+  ];
+  if (S.orgNames[u.org_id]) rows.unshift([t("units.company"), esc(S.orgNames[u.org_id])]);
+  if (u.status === "retired") rows.push([t("units.left_on"), esc(`${when(u.retired_at)}: ${u.retired_reason}`)]);
+  const jobs = role() === "platform_operator" ? null
+    : (await api(`/api/workorders?view=all&asset_id=${id}`)).work_orders;
+  view.innerHTML = `
+    <button class="link" id="back">‹ ${esc(t("units.title"))}</button>
+    <div class="row"><h1 class="grow">${esc(t("units.unit", { unit: u.unit_number }))}</h1>
+      ${edit ? `<button class="secondary" id="ed">${esc(t("units.edit"))}</button>` : ""}</div>
+    <div class="card"><dl>${rows.filter((r) => r[1]).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join("")}</dl></div>
+    ${jobs ? `<div class="row"><h2 class="grow">${esc(t("units.work_history"))}</h2>
+      ${S.meta && S.meta.may.create && u.status === "active" ? `<button class="secondary" id="nwo">${esc(t("wo.new"))}</button>` : ""}</div>
+      ${jobs.map(woRow).join("") || `<div class="card muted">${esc(t("wo.none"))}</div>`}` : ""}
+    ${edit ? `<h2>${esc(t("units.leaving_title"))}</h2>
+      <div class="card"><p class="muted">${esc(t("units.leaving_help"))}</p>
+      <label for="why">${esc(t("field.reason"))}</label><input id="why" placeholder="${esc(t("units.leaving_placeholder"))}">
+      <p><button class="secondary" id="ret">${esc(t("units.leaving_button"))}</button></p></div>` : ""}`;
+  $("#back").onclick = () => go("units");
+  view.querySelectorAll("[data-wo]").forEach((b) => (b.onclick = () => SCREENS.wo(b.dataset.wo)));
+  if ($("#nwo")) $("#nwo").onclick = () => SCREENS.newWo({ asset_id: id });
+  if (edit) {
+    $("#ed").onclick = () => SCREENS.unitForm(u);
+    $("#ret").onclick = async () => {
+      const reason = $("#why").value.trim();
+      if (!reason) return toast(t("units.reason_first"));
+      try {
+        await api(`/api/assets/${id}/retire`, { method: "POST", json: { reason } });
+        toast(t("units.marked_left")); go("units");
+      } catch (e) { toast(e.message); }
+    };
+  }
+};
+
+SCREENS.unitForm = async (u) => {
+  const v = u || { asset_type: "", owned_by_carrier: true };
+  const f = (id, label, value, attrs = "") =>
+    `<div><label for="${id}">${esc(label)}</label><input id="${id}" value="${esc(value ?? "")}" ${attrs}></div>`;
+  view.innerHTML = `
+    <button class="link" id="back">‹ ${esc(u ? t("units.unit", { unit: u.unit_number }) : t("units.title"))}</button>
+    <h1>${esc(u ? t("units.edit_title", { unit: u.unit_number }) : t("units.add_title"))}</h1>
+    <div id="out"></div>
+    <form id="f" class="card">
+      <label for="asset_type">${esc(t("field.asset_type"))}</label>
+      <select id="asset_type" required>
+        <option value="">${esc(t("app.choose"))}</option>
+        <option value="power_unit" ${v.asset_type === "power_unit" ? "selected" : ""}>${esc(t("type.power_unit_long"))}</option>
+        <option value="trailer" ${v.asset_type === "trailer" ? "selected" : ""}>${esc(t("type.trailer"))}</option>
+      </select>
+      ${f("unit_number", t("field.unit_number"), v.unit_number, 'required maxlength=30 dir="ltr"')}
+      ${f("vin", t("field.vin"), v.vin, 'autocapitalize="characters" maxlength=24 dir="ltr"')}
+      <div class="two">${f("model_year", t("field.model_year"), v.model_year, 'inputmode="numeric" dir="ltr"')}
+        ${f("make", t("field.make"), v.make)}</div>
+      ${f("model", t("field.model"), v.model)}
+      <div class="two">${f("plate", t("field.plate"), v.plate, 'autocapitalize="characters" dir="ltr"')}
+        ${f("plate_state", t("field.plate_state"), v.plate_state, 'maxlength=3 autocapitalize="characters" dir="ltr"')}</div>
+      <label for="owned">${esc(t("field.owner"))}</label>
+      <select id="owned">
+        <option value="yes">${esc(t("units.owned_by_company"))}</option>
+        <option value="no" ${v.owned_by_carrier ? "" : "selected"}>${esc(t("units.owned_by_other"))}</option>
+      </select>
+      <div id="fb" ${v.owned_by_carrier ? "hidden" : ""}>${f("furnished_by", t("field.furnished_by"), v.furnished_by)}</div>
+      <div class="two">${f("odometer", t("units.odometer_miles"), v.odometer, 'inputmode="numeric" dir="ltr"')}
+        ${f("engine_hours", t("field.engine_hours"), v.engine_hours, 'inputmode="decimal" dir="ltr"')}</div>
+      <label for="notes">${esc(t("field.notes"))}</label><textarea id="notes" rows="2">${esc(v.notes || "")}</textarea>
+      <p><button class="primary wide">${esc(u ? t("units.save_changes") : t("units.add"))}</button></p>
+    </form>`;
+  $("#back").onclick = () => (u ? SCREENS.unit(u.asset_id) : go("units"));
+  $("#owned").onchange = () => ($("#fb").hidden = $("#owned").value === "yes");
+  $("#f").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const body = {};
+    ["asset_type", "unit_number", "vin", "model_year", "make", "model", "plate",
+     "plate_state", "odometer", "engine_hours", "notes"].forEach((k) => (body[k] = val(k)));
+    body.owned_by_carrier = $("#owned").value === "yes";
+    body.furnished_by = body.owned_by_carrier ? null : val("furnished_by");
+    try {
+      const r = u
+        ? await api(`/api/assets/${u.asset_id}`, { method: "PATCH", json: body })
+        : await api("/api/assets", { method: "POST", json: body });
+      const w = r.warnings && r.warnings.length ? " " + t("app.check_these") + " " + r.warnings.join(" ") : "";
+      toast((u ? t("app.saved") : t("units.added")) + w);
+      SCREENS.unit(r.unit.asset_id);
+    } catch (e) { $("#out").innerHTML = errorHtml(e); window.scrollTo(0, 0); }
+  };
+};
+
+SCREENS.importUnits = async () => {
+  view.innerHTML = `
+    <button class="link" id="back">‹ ${esc(t("units.title"))}</button>
+    <h1>${esc(t("import.title"))}</h1>
+    <div class="card">
+      <p>${esc(t("import.help"))}</p>
+      <p class="muted">${esc(t("import.nothing_saved_until"))}</p>
+      <input type="file" id="file" accept=".csv,text/csv">
+      <p><button class="primary" id="chk" disabled>${esc(t("import.check"))}</button></p>
+    </div>
+    <div id="out"></div>`;
+  $("#back").onclick = () => go("units");
+  $("#file").onchange = () => ($("#chk").disabled = !$("#file").files.length);
+  const send = async (commit) => {
+    const fd = new FormData(); fd.append("file", $("#file").files[0]);
+    return api(`/api/assets/import?commit=${commit}`, { method: "POST", body: fd });
+  };
+  $("#chk").onclick = async () => {
+    try {
+      const r = await send(false);
+      const bad = r.rows.filter((x) => x.errors.length);
+      const warn = r.rows.filter((x) => !x.errors.length && x.warnings.length);
+      let html = msgBox(r.ok ? "ok" : "bad",
+        r.ok ? t("import.ready", { n: r.count, p: r.power_units, t: r.trailers })
+             : t("import.cant_load"), r.problems);
+      if (r.ignored_columns && r.ignored_columns.length)
+        html += msgBox("warn", t("import.ignored", { cols: r.ignored_columns.join(", ") }));
+      if (bad.length) html += `<h2>${esc(t("import.rows_to_fix"))}</h2>` + bad.map((x) =>
+        `<div class="card"><b>${esc(t("import.row", { n: x.row }))}</b> ${esc(x.unit_number || "")}${msgBox("bad", "", x.errors)}</div>`).join("");
+      if (warn.length) html += `<h2>${esc(t("import.rows_to_look"))}</h2>` + warn.map((x) =>
+        `<div class="card"><b>${esc(t("import.row", { n: x.row }))}</b> ${esc(x.unit_number || "")}${msgBox("warn", "", x.warnings)}</div>`).join("");
+      if (r.ok) html += `<p><button class="primary wide" id="go">${esc(t("import.load", { n: r.count }))}</button></p>`;
+      $("#out").innerHTML = html;
+      if (r.ok) $("#go").onclick = async () => {
+        $("#go").disabled = true;
+        try {
+          const done = await send(true);
+          if (done.saved) { toast(t("import.loaded", { n: done.saved })); go("units"); }
+          else { $("#out").innerHTML = msgBox("bad", t("import.nothing_saved"), done.problems); }
+        } catch (e) { $("#out").innerHTML = errorHtml(e); }
+      };
+    } catch (e) { $("#out").innerHTML = errorHtml(e); }
+  };
+};
+
+// ---------------------------------------------------------------- people
+
+SCREENS.people = async () => {
+  const r = await api("/api/users");
+  view.innerHTML = `
+    <h1>${esc(t("people.title"))}</h1>
+    ${r.users.map((u) => `<div class="card row"><span class="grow"><b>${esc(u.name)}</b><br>
+      <span class="muted" dir="ltr">${esc(u.email)}</span></span><span class="pill">${esc(t("role." + u.role))}</span></div>`).join("")}
+    ${r.may_add.length ? `<h2>${esc(t("people.add_title"))}</h2><div id="out"></div>
+    <form id="f" class="card">
+      <label for="n">${esc(t("field.name"))}</label><input id="n" required maxlength="80">
+      <label for="e">${esc(t("people.email_help"))}</label><input id="e" type="email" required dir="ltr">
+      <label for="r">${esc(t("field.role"))}</label><select id="r">${options(r.may_add, "role.", r.may_add[0])}</select>
+      <label for="p">${esc(t("people.password_help"))}</label>
+      <input id="p" type="text" required minlength="8" autocomplete="off" dir="ltr">
+      <p><button class="primary wide">${esc(t("people.add"))}</button></p>
+    </form>` : ""}`;
+  if (!r.may_add.length) return;
+  $("#f").onsubmit = async (ev) => {
+    ev.preventDefault();
+    try {
+      await api("/api/users", { method: "POST", json: { name: $("#n").value,
+        email: $("#e").value, role: $("#r").value, password: $("#p").value, language: S.lang } });
+      toast(t("people.added"));
+      S.meta = await api("/api/workorders/meta");
+      go("people");
+    } catch (e) { $("#out").innerHTML = errorHtml(e); }
+  };
+};
+
+// ---------------------------------------------------------------- change log
+
+SCREENS.log = async () => {
+  const [r, chk] = await Promise.all([api("/api/audit"), api("/api/audit/verify")]);
+  view.innerHTML = `
+    <h1>${esc(t("log.title"))}</h1>
+    ${chk.ok ? msgBox("ok", t("log.ok", { n: chk.entries }))
+             : msgBox("bad", t("log.bad", { seq: chk.at_seq, why: chk.why }))}
+    ${r.entries.map((e) => {
+      const changed = e.action.endsWith(".edited") || e.action === "wo.amended"
+        ? Object.keys(e.after || {}).filter((k) => !/_at$|_by$|_key$|^updated_at$|^reason$/.test(k))
+          .map((k) => `${esc(t("field." + k))}: ${esc(e.before ? e.before[k] : "")} → ${esc(e.after[k])}`).join("<br>")
+        : "";
+      return `<div class="card"><div class="row"><b class="grow">${esc(t("log.action." + e.action))}</b>
+        <span class="muted">#${e.seq}</span></div>
+        <div class="muted small">${esc(e.actor_name)} (${esc(t("role." + e.actor_role))}) · ${esc(when(e.at))}</div>
+        ${changed ? `<div class="muted small">${changed}</div>` : ""}</div>`;
+    }).join("")}`;
+};
+
+// ---------------------------------------------------------------- Apex console
+
+SCREENS.companies = async () => {
+  const r = await api("/api/operator/orgs");
+  r.orgs.forEach((o) => (S.orgNames[o.org_id] = o.name));
+  view.innerHTML = `
+    <h1>${esc(t("console.title"))}</h1>
+    ${r.orgs.map((o) => `<div class="card row"><span class="grow"><b>${esc(o.name)}</b><br>
+      <span class="muted">${esc(t("console.counts", { units: num(o.units), people: num(o.people) }))}</span></span></div>`).join("") ||
+      `<div class="card muted">${esc(t("console.none"))}</div>`}
+    <h2>${esc(t("console.new_title"))}</h2><div id="out"></div>
+    <form id="f" class="card">
+      <label for="cn">${esc(t("field.company_name"))}</label><input id="cn" required>
+      <label for="an">${esc(t("field.admin_name"))}</label><input id="an" required>
+      <label for="ae">${esc(t("field.admin_email"))}</label><input id="ae" type="email" required dir="ltr">
+      <label for="ap">${esc(t("field.admin_password"))}</label>
+      <input id="ap" type="text" required minlength="8" autocomplete="off" dir="ltr">
+      <p><button class="primary wide">${esc(t("console.create"))}</button></p>
+    </form>`;
+  $("#f").onsubmit = async (ev) => {
+    ev.preventDefault();
+    try {
+      await api("/api/operator/orgs", { method: "POST", json: {
+        company_name: $("#cn").value, admin_name: $("#an").value,
+        admin_email: $("#ae").value, admin_password: $("#ap").value } });
+      toast(t("console.created")); go("companies");
+    } catch (e) { $("#out").innerHTML = errorHtml(e); }
+  };
+};
+
+loadLang(guessLang()).then(start);
+
+</script>
