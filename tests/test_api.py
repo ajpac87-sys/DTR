@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from conftest import OPERATOR, login
-from dtr.db import GLOBAL_COLLECTIONS, TENANT_SCOPED_COLLECTIONS, TenantDB
-from dtr.tenancy import Principal, Role
+from dtr.db import SHARED_COLLECTIONS, COMPANY_COLLECTIONS, CompanyData
+from dtr.access import Person, Role
 
 TRUCK = {"asset_type": "power_unit", "unit_number": "101",
          "vin": "1M8GDM9AXKP042788", "make": "Freightliner",
@@ -183,10 +183,10 @@ def test_imports_stay_in_their_company(client, two_fleets):
 
 # --- Every company collection, checked for leaks ----------------------------
 
-@pytest.mark.parametrize("collection", sorted(TENANT_SCOPED_COLLECTIONS))
+@pytest.mark.parametrize("collection", sorted(COMPANY_COLLECTIONS))
 def test_every_company_collection_is_walled(client, collection):
-    a = TenantDB(Principal("ua", "org_a", Role.ADMIN))
-    b = TenantDB(Principal("ub", "org_b", Role.ADMIN))
+    a = CompanyData(Person("ua", "org_a", Role.ADMIN))
+    b = CompanyData(Person("ub", "org_b", Role.ADMIN))
 
     async def go():
         await a.insert(collection, {"probe": "secret", "org_id": "org_b"})
@@ -203,7 +203,7 @@ def test_every_company_collection_is_walled(client, collection):
 
 def test_no_route_bypasses_the_company_wall():
     """
-    Company collections are reached only through TenantDB. Direct database
+    Company collections are reached only through CompanyData. Direct database
     use is allowed only for the global collections (companies and sign-ins)
     and for creating indexes.
     """
@@ -212,7 +212,7 @@ def test_no_route_bypasses_the_company_wall():
     for f in src_dir.rglob("*.py"):
         for n, line in enumerate(f.read_text().splitlines(), 1):
             for name in re.findall(r"\bdb\(\)\.(\w+)", line):
-                if name in GLOBAL_COLLECTIONS:
+                if name in SHARED_COLLECTIONS:
                     continue
                 if f.name == "db.py" and "create_index" in line:
                     continue

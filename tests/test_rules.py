@@ -3,46 +3,46 @@ import copy
 
 import pytest
 
-from dtr import audit
+from dtr import changelog
 from dtr.i18n import tr
 from dtr.assets import csv_import, units
-from dtr.tenancy import (DENY_ALL, Principal, Role, can_grant, scope_filter,
-                         scoped)
+from dtr.access import (NOTHING, Person, Role, can_grant, company_filter,
+                         within_company)
 
-A = Principal("u1", "org_a", Role.ADMIN)
-OPS = Principal("ops", None, Role.PLATFORM_OPERATOR)
+A = Person("u1", "org_a", Role.ADMIN)
+OPS = Person("ops", None, Role.PLATFORM_OPERATOR)
 
 
 # --- Company walls ----------------------------------------------------------
 
-def test_no_principal_sees_nothing():
-    assert scope_filter(None) == DENY_ALL
-    assert scoped(None, {"unit_number_key": "101"}) == DENY_ALL
+def test_nobody_signed_in_sees_nothing():
+    assert company_filter(None) == NOTHING
+    assert within_company(None, {"unit_number_key": "101"}) == NOTHING
 
 
 def test_customer_sees_own_company_only():
-    assert scope_filter(A) == {"org_id": "org_a"}
+    assert company_filter(A) == {"org_id": "org_a"}
 
 
 def test_a_condition_can_only_narrow():
-    q = scoped(A, {"org_id": "org_b"})
+    q = within_company(A, {"org_id": "org_b"})
     assert q == {"$and": [{"org_id": "org_a"}, {"org_id": "org_b"}]}
 
 
 def test_operator_sees_all_companies():
-    assert scope_filter(OPS) == {}
+    assert company_filter(OPS) == {}
 
 
 @pytest.mark.parametrize("role", [r for r in Role
                                   if r is not Role.PLATFORM_OPERATOR])
 def test_customer_role_needs_a_company(role):
     with pytest.raises(ValueError):
-        Principal("u", None, role)
+        Person("u", None, role)
 
 
 def test_operator_cannot_have_a_home_company():
     with pytest.raises(ValueError):
-        Principal("u", "org_a", Role.PLATFORM_OPERATOR)
+        Person("u", "org_a", Role.PLATFORM_OPERATOR)
 
 
 def test_nobody_grants_above_themselves():
@@ -163,33 +163,33 @@ def test_csv_excel_bom_and_semicolons():
 # --- Change log -------------------------------------------------------------
 
 def _chain(n):
-    prev, out = audit.GENESIS, []
+    prev, out = changelog.FIRST_SEAL, []
     for i in range(1, n + 1):
         e = {"org_id": "o", "seq": i, "at": "t", "actor_user_id": "u",
              "actor_name": "n", "actor_role": "admin", "action": "x",
              "record_type": "asset", "record_id": str(i), "before": None,
-             "after": {"v": i}, "prev_hash": prev}
-        e["hash"] = audit.chain_hash(e)
-        prev = e["hash"]
+             "after": {"v": i}, "prev_seal": prev}
+        e["seal"] = changelog.seal(e)
+        prev = e["seal"]
         out.append(e)
     return out
 
 
 def test_chain_intact():
-    assert audit.verify_chain(_chain(5))["ok"]
+    assert changelog.check(_chain(5))["ok"]
 
 
 def test_chain_shows_an_edit():
     c = copy.deepcopy(_chain(5))
     c[2]["after"] = {"v": 999}
-    r = audit.verify_chain(c)
+    r = changelog.check(c)
     assert not r["ok"] and r["at_seq"] == 3
 
 
 def test_chain_shows_a_deletion():
     c = _chain(5)
     del c[1]
-    assert not audit.verify_chain(c)["ok"]
+    assert not changelog.check(c)["ok"]
 
 
 # --- Languages -----------------------------------------------------------------
@@ -221,3 +221,32 @@ def test_every_word_on_screen_is_in_the_catalog():
     used = set(re.findall(r'\bt\("([a-z_]+\.[a-z_.]+)"', js))
     missing = sorted(k for k in used if k not in en and not k.endswith("."))
     assert missing == []
+
+
+# --- Passwords -------------------------------------------------------------------
+
+def test_password_round_trip():
+    from dtr.passwords import hash_password, verify_password
+    h = hash_password("torque-wrench-42")
+    assert h.startswith("dtr1:") and "torque" not in h
+    assert verify_password("torque-wrench-42", h)
+    assert not verify_password("torque-wrench-43", h)
+
+
+def test_same_password_different_fingerprints():
+    from dtr.passwords import hash_password
+    assert hash_password("same-password") != hash_password("same-password")
+
+
+@pytest.mark.parametrize("stored", ["", "nonsense", "dtr1:15:zz:yy",
+                                    "dtr0:15:00:00", "dtr1:40:00ff:00ff"])
+def test_damaged_stored_password_never_matches(stored):
+    from dtr.passwords import verify_password
+    assert verify_password("anything", stored) is False
+
+
+def test_password_length_rules():
+    from dtr.passwords import password_ok
+    assert not password_ok("short")
+    assert password_ok("long enough")
+    assert not password_ok("x" * 300)

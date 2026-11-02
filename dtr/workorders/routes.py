@@ -8,11 +8,11 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from .. import audit
-from ..auth import current_principal
-from ..db import TenantDB, db
+from .. import changelog
+from ..auth import signed_in
+from ..db import CompanyData, db
 from ..i18n import Msg, Problem, lang_of, text, tr
-from ..tenancy import Principal, Role
+from ..access import Person, Role
 from . import rules as R
 
 router = APIRouter(prefix="/api/workorders")
@@ -31,7 +31,7 @@ def _deny(ok: bool, key: str = "err.not_allowed") -> None:
         raise Problem(403, Msg(key))
 
 
-def _writer(p: Principal) -> None:
+def _writer(p: Person) -> None:
     if p.is_operator:
         raise Problem(403, Msg("err.operator_read_only"))
 
@@ -40,19 +40,19 @@ def _out(wo: dict) -> dict:
     return {**wo, "totals": R.totals(wo)}
 
 
-async def _load(tdb: TenantDB, wid: str) -> dict:
-    wo = await tdb.find_one("work_orders", {"work_order_id": wid})
+async def _load(data: CompanyData, wid: str) -> dict:
+    wo = await data.find_one("work_orders", {"work_order_id": wid})
     if not wo:
         raise Problem(404, Msg("wo.err.not_found"))
     return wo
 
 
-def _stamp(p: Principal) -> dict:
+def _stamp(p: Person) -> dict:
     return {"line_id": uuid.uuid4().hex, "at": _now(), "by": p.user_id,
             "by_name": p.name}
 
 
-async def _save(tdb: TenantDB, p: Principal, wo: dict, action: str, *,
+async def _save(data: CompanyData, p: Person, wo: dict, action: str, *,
                 changes: dict | None = None, push: dict | None = None,
                 before: dict | None = None, after: dict | None = None,
                 expect_status: str | tuple | None = None) -> dict:
@@ -67,17 +67,17 @@ async def _save(tdb: TenantDB, p: Principal, wo: dict, action: str, *,
             else tuple(expect_status)
         cond["status"] = {"$in": list(st)}
     changes = {**(changes or {}), "updated_at": _now()}
-    if not await tdb.update("work_orders", cond, changes, push):
+    if not await data.update("work_orders", cond, changes, push):
         raise Problem(409, Msg("wo.err.changed_meanwhile"))
-    await audit.record(tdb, p, action, "work_order", wo["work_order_id"],
+    await changelog.write(data, p, action, "work_order", wo["work_order_id"],
                        before=before, after=after or changes)
-    return _out(await _load(tdb, wo["work_order_id"]))
+    return _out(await _load(data, wo["work_order_id"]))
 
 
 # --- Reading ------------------------------------------------------------------
 
 @router.get("/meta")
-async def meta(p: Principal = Depends(current_principal)):
+async def meta(p: Person = Depends(signed_in)):
     """Choices for the forms, and who can be assigned."""
     techs = []
     if p.org_id:
@@ -96,7 +96,7 @@ async def meta(p: Principal = Depends(current_principal)):
 @router.get("")
 async def list_jobs(view: str = "active", mine: bool = False,
                     asset_id: str = "",
-                    p: Principal = Depends(current_principal)):
+                    p: Person = Depends(signed_in)):
     cond: dict = {}
     if view == "active":
         cond["status"] = {"$in": list(R.ACTIVE)}
@@ -107,7 +107,7 @@ async def list_jobs(view: str = "active", mine: bool = False,
                        {"labor.user_id": p.user_id}]
     if asset_id:
         cond["asset_id"] = asset_id
-    rows = await TenantDB(p).find("work_orders", cond)
+    rows = await CompanyData(p).find("work_orders", cond)
     rows.sort(key=R.sort_key if view == "active"
               else (lambda w: -w.get("number", 0)))
     keep = ("work_order_id", "number", "asset_id", "unit_number",
@@ -118,8 +118,8 @@ async def list_jobs(view: str = "active", mine: bool = False,
 
 
 @router.get("/{wid}")
-async def get_job(wid: str, p: Principal = Depends(current_principal)):
-    return _out(await _load(TenantDB(p), wid))
+async def get_job(wid: str, p: Person = Depends(signed_in)):
+    return _out(await _load(CompanyData(p), wid))
 
 
 # --- Creating and editing ----------------------------------------------------
@@ -138,18 +138,18 @@ class JobIn(BaseModel):
 
 
 @router.post("", status_code=201)
-async def create_job(body: JobIn, p: Principal = Depends(current_principal)):
+async def create_job(body: JobIn, p: Person = Depends(signed_in)):
     _writer(p)
     _deny(R.may_create(p))
-    tdb = TenantDB(p)
-    data = body.model_dump(exclude_unset=True)
-    data.setdefault("priority", "normal")
-    data.setdefault("category", "other")
-    data.setdefault("source", "manual")
-    fields, errors = R.check_fields(data)
+    data = CompanyData(p)
+    sent = body.model_dump(exclude_unset=True)
+    sent.setdefault("priority", "normal")
+    sent.setdefault("category", "other")
+    sent.setdefault("source", "manual")
+    fields, errors = R.check_fields(sent)
     unit = None
     if body.asset_id:
-        unit = await tdb.find_one("assets", {"asset_id": body.asset_id})
+        unit = await data.find_one("assets", {"asset_id": body.asset_id})
     if not unit:
         errors.append(Msg("wo.err.need_unit"))
     elif unit.get("status") != "active":
@@ -158,7 +158,7 @@ async def create_job(body: JobIn, p: Principal = Depends(current_principal)):
         errors.append(Msg("wo.err.need_complaint"))
     if errors:
         raise Problem(400, {"errors": errors})
-    number = await tdb.next_number("work_order")
+    number = await data.next_number("work_order")
     wo = {
         "work_order_id": uuid.uuid4().hex, "number": number,
         "asset_id": unit["asset_id"], "unit_number": unit["unit_number"],
@@ -174,8 +174,8 @@ async def create_job(body: JobIn, p: Principal = Depends(current_principal)):
         "created_at": _now(), "created_by": p.user_id,
         "created_name": p.name, "updated_at": _now(),
     }
-    wo = await tdb.insert("work_orders", wo)
-    await audit.record(tdb, p, "wo.created", "work_order",
+    wo = await data.insert("work_orders", wo)
+    await changelog.write(data, p, "wo.created", "work_order",
                        wo["work_order_id"],
                        after={k: wo[k] for k in ("number", "unit_number",
                                                  "complaint", "priority",
@@ -185,17 +185,17 @@ async def create_job(body: JobIn, p: Principal = Depends(current_principal)):
 
 @router.patch("/{wid}")
 async def edit_job(wid: str, body: JobIn,
-                   p: Principal = Depends(current_principal)):
+                   p: Person = Depends(signed_in)):
     """Edit a job that hasn't been signed off. Signed jobs use /amend."""
     _writer(p)
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     _deny(R.may_work(p) or (R.may_create(p) and wo["created_by"] == p.user_id))
     if wo["status"] not in R.ACTIVE:
         raise Problem(400, Msg("wo.err.signed_use_amend"))
-    data = body.model_dump(exclude_unset=True)
-    data.pop("asset_id", None)       # a job never moves to another unit
-    fields, errors = R.check_fields(data)
+    sent = body.model_dump(exclude_unset=True)
+    sent.pop("asset_id", None)       # a job never moves to another unit
+    fields, errors = R.check_fields(sent)
     if "complaint" in fields and not fields["complaint"]:
         errors.append(Msg("wo.err.need_complaint"))
     if errors:
@@ -203,7 +203,7 @@ async def edit_job(wid: str, body: JobIn,
     changes = {k: v for k, v in fields.items() if wo.get(k) != v}
     if not changes:
         return _out(wo)
-    return await _save(tdb, p, wo, "wo.edited", changes=changes,
+    return await _save(data, p, wo, "wo.edited", changes=changes,
                        before={k: wo.get(k) for k in changes}, after=changes,
                        expect_status=R.ACTIVE)
 
@@ -214,11 +214,11 @@ class StatusIn(BaseModel):
 
 @router.post("/{wid}/status")
 async def move(wid: str, body: StatusIn,
-               p: Principal = Depends(current_principal)):
+               p: Person = Depends(signed_in)):
     _writer(p)
     _deny(R.may_work(p))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     if body.status not in R.MOVES.get(wo["status"], set()):
         raise Problem(400, Msg("wo.err.bad_move"))
     step = {"at": _now(), "by": p.user_id, "by_name": p.name,
@@ -226,7 +226,7 @@ async def move(wid: str, body: StatusIn,
     changes = {"status": body.status}
     if body.status == R.IN_PROGRESS and not wo.get("started_at"):
         changes["started_at"] = _now()
-    return await _save(tdb, p, wo, "wo.status", changes=changes,
+    return await _save(data, p, wo, "wo.status", changes=changes,
                        push={"history": step},
                        before={"status": wo["status"]},
                        after={"status": body.status},
@@ -239,11 +239,11 @@ class AssignIn(BaseModel):
 
 @router.post("/{wid}/assign")
 async def assign(wid: str, body: AssignIn,
-                 p: Principal = Depends(current_principal)):
+                 p: Person = Depends(signed_in)):
     _writer(p)
     _deny(R.may_lead(p))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     if wo["status"] not in R.ACTIVE:
         raise Problem(400, Msg("wo.err.not_open"))
     people = await db().users.find(
@@ -253,7 +253,7 @@ async def assign(wid: str, body: AssignIn,
         {"_id": 0, "user_id": 1, "name": 1}).to_list(None)
     if len(people) != len(set(body.user_ids)):
         raise Problem(400, Msg("wo.err.bad_tech"))
-    return await _save(tdb, p, wo, "wo.assigned",
+    return await _save(data, p, wo, "wo.assigned",
                        changes={"assigned": people},
                        before={"assigned": wo["assigned"]},
                        after={"assigned": people}, expect_status=R.ACTIVE)
@@ -261,7 +261,7 @@ async def assign(wid: str, body: AssignIn,
 
 # --- Labor, parts, outside work ------------------------------------------
 
-def _amend_reason(p: Principal, wo: dict, reason: str | None) -> dict:
+def _amend_reason(p: Person, wo: dict, reason: str | None) -> dict:
     """
     Adding a line to a signed job is an amendment: it needs a reason and the
     right person, and the line is marked as added afterwards.
@@ -286,12 +286,12 @@ class LaborIn(BaseModel):
 
 @router.post("/{wid}/labor")
 async def add_labor(wid: str, body: LaborIn,
-                    p: Principal = Depends(current_principal)):
+                    p: Person = Depends(signed_in)):
     """Hours on the job. A tech logs their own; a shop lead may log anyone's."""
     _writer(p)
     _deny(R.may_work(p))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     extra = _amend_reason(p, wo, body.reason)
     who = {"user_id": p.user_id, "name": p.name}
     if body.user_id and body.user_id != p.user_id:
@@ -306,7 +306,7 @@ async def add_labor(wid: str, body: LaborIn,
     if errors:
         raise Problem(400, {"errors": errors})
     line = {**_stamp(p), **who, **line, **extra}
-    return await _save(tdb, p, wo, "wo.labor", push={"labor": line},
+    return await _save(data, p, wo, "wo.labor", push={"labor": line},
                        after={"labor": line}, expect_status=wo["status"])
 
 
@@ -320,21 +320,21 @@ class PartIn(BaseModel):
 
 @router.post("/{wid}/parts")
 async def add_part(wid: str, body: PartIn,
-                   p: Principal = Depends(current_principal)):
+                   p: Person = Depends(signed_in)):
     """
     A part used on the job. Typed in for now; the parts inventory step will
     pull these from stock and take them off the shelf count.
     """
     _writer(p)
     _deny(R.may_work(p))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     extra = _amend_reason(p, wo, body.reason)
     line, errors = R.check_part(body.model_dump())
     if errors:
         raise Problem(400, {"errors": errors})
     line = {**_stamp(p), **line, **extra}
-    return await _save(tdb, p, wo, "wo.part", push={"parts": line},
+    return await _save(data, p, wo, "wo.part", push={"parts": line},
                        after={"part": line}, expect_status=wo["status"])
 
 
@@ -348,18 +348,18 @@ class VendorIn(BaseModel):
 
 @router.post("/{wid}/vendor")
 async def add_vendor(wid: str, body: VendorIn,
-                     p: Principal = Depends(current_principal)):
+                     p: Person = Depends(signed_in)):
     """Work sent out: a tire shop, a machine shop, a dealer."""
     _writer(p)
     _deny(R.may_work(p))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     extra = _amend_reason(p, wo, body.reason)
     line, errors = R.check_vendor(body.model_dump())
     if errors:
         raise Problem(400, {"errors": errors})
     line = {**_stamp(p), **line, **extra}
-    return await _save(tdb, p, wo, "wo.vendor", push={"vendor": line},
+    return await _save(data, p, wo, "wo.vendor", push={"vendor": line},
                        after={"vendor": line}, expect_status=wo["status"])
 
 
@@ -371,7 +371,7 @@ class VoidIn(BaseModel):
 
 @router.post("/{wid}/void")
 async def void_line(wid: str, body: VoidIn,
-                    p: Principal = Depends(current_principal)):
+                    p: Person = Depends(signed_in)):
     """
     Cross out a labor, part or outside-work line entered by mistake. It stays
     on the job, marked void, with who, when and why. Never deleted.
@@ -382,8 +382,8 @@ async def void_line(wid: str, body: VoidIn,
         raise Problem(400, Msg("err.not_allowed"))
     if not body.reason.strip():
         raise Problem(400, Msg("wo.err.need_reason"))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     if wo["status"] == R.CANCELLED:
         raise Problem(400, Msg("wo.err.cancelled"))
     if wo["status"] in R.SIGNED:
@@ -402,7 +402,7 @@ async def void_line(wid: str, body: VoidIn,
             f"{body.kind}.{idx}.voided_by": p.name,
             f"{body.kind}.{idx}.voided_at": _now()}
     cond_status = wo["status"]
-    return await _save(tdb, p, wo, "wo.void", changes=mark,
+    return await _save(data, p, wo, "wo.void", changes=mark,
                        before={body.kind: line},
                        after={"voided": body.line_id,
                               "reason": body.reason.strip()},
@@ -417,27 +417,27 @@ class NoteIn(BaseModel):
 
 @router.post("/{wid}/notes")
 async def add_note(wid: str, body: NoteIn,
-                   p: Principal = Depends(current_principal)):
+                   p: Person = Depends(signed_in)):
     _writer(p)
     _deny(R.may_note(p))
     t = R.clean_text(body.text)
     if not t:
         raise Problem(400, Msg("err.required", field=Msg("field.note")))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     note = {**_stamp(p), "text": t}
-    return await _save(tdb, p, wo, "wo.note", push={"notes": note},
+    return await _save(data, p, wo, "wo.note", push={"notes": note},
                        after={"note": t})
 
 
 @router.post("/{wid}/photos")
 async def add_photo(wid: str, file: UploadFile = File(...),
                     caption: str = Form(""),
-                    p: Principal = Depends(current_principal)):
+                    p: Person = Depends(signed_in)):
     _writer(p)
     _deny(R.may_note(p))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     if len(wo.get("photos", [])) >= MAX_PHOTOS_PER_JOB:
         raise Problem(400, Msg("wo.err.too_many_photos",
                                max=MAX_PHOTOS_PER_JOB))
@@ -449,20 +449,20 @@ async def add_photo(wid: str, file: UploadFile = File(...),
     meta = {**_stamp(p), "photo_id": uuid.uuid4().hex,
             "caption": R.clean_text(caption), "size": len(raw),
             "content_type": file.content_type}
-    await tdb.insert("wo_photos", {"photo_id": meta["photo_id"],
+    await data.insert("wo_photos", {"photo_id": meta["photo_id"],
                                    "work_order_id": wid,
                                    "content_type": file.content_type,
                                    "data": raw, "at": meta["at"],
                                    "by": p.user_id})
-    return await _save(tdb, p, wo, "wo.photo", push={"photos": meta},
+    return await _save(data, p, wo, "wo.photo", push={"photos": meta},
                        after={"photo": meta["photo_id"],
                               "caption": meta["caption"]})
 
 
 @router.get("/{wid}/photos/{photo_id}")
 async def get_photo(wid: str, photo_id: str,
-                    p: Principal = Depends(current_principal)):
-    ph = await TenantDB(p).find_one("wo_photos", {"photo_id": photo_id,
+                    p: Person = Depends(signed_in)):
+    ph = await CompanyData(p).find_one("wo_photos", {"photo_id": photo_id,
                                                   "work_order_id": wid})
     if not ph:
         raise Problem(404, Msg("wo.err.not_found"))
@@ -478,15 +478,15 @@ class SignIn(BaseModel):
 
 @router.post("/{wid}/complete")
 async def sign_off(wid: str, body: SignIn,
-                   p: Principal = Depends(current_principal),
+                   p: Person = Depends(signed_in),
                    lang: str = Depends(lang_of)):
     """
     The tech signs the job complete by typing their own name. The statement
     they agreed to is saved word for word, in the language they read it in.
     """
     _writer(p)
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     errors = R.check_signoff(p, wo, body.typed_name)
     if errors:
         raise Problem(400, {"errors": errors})
@@ -496,7 +496,7 @@ async def sign_off(wid: str, body: SignIn,
                "statement_lang": lang}
     step = {"at": signoff["at"], "by": p.user_id, "by_name": p.name,
             "from": wo["status"], "to": R.COMPLETE}
-    out = await _save(tdb, p, wo, "wo.signed",
+    out = await _save(data, p, wo, "wo.signed",
                       changes={"status": R.COMPLETE, "signoff": signoff,
                                "completed_at": signoff["at"]},
                       push={"history": step}, after={"signoff": signoff},
@@ -506,18 +506,18 @@ async def sign_off(wid: str, body: SignIn,
 
 
 @router.post("/{wid}/close")
-async def close(wid: str, p: Principal = Depends(current_principal)):
+async def close(wid: str, p: Person = Depends(signed_in)):
     """A shop lead has reviewed the signed job. Nothing more to do on it."""
     _writer(p)
     _deny(R.may_lead(p))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     if wo["status"] != R.COMPLETE:
         raise Problem(400, Msg("wo.err.close_needs_complete"))
     closed = {"user_id": p.user_id, "name": p.name, "at": _now()}
     step = {"at": closed["at"], "by": p.user_id, "by_name": p.name,
             "from": R.COMPLETE, "to": R.CLOSED}
-    return await _save(tdb, p, wo, "wo.closed",
+    return await _save(data, p, wo, "wo.closed",
                        changes={"status": R.CLOSED, "closed": closed},
                        push={"history": step}, after={"closed": closed},
                        expect_status=R.COMPLETE)
@@ -529,14 +529,14 @@ class ReasonIn(BaseModel):
 
 @router.post("/{wid}/cancel")
 async def cancel(wid: str, body: ReasonIn,
-                 p: Principal = Depends(current_principal)):
+                 p: Person = Depends(signed_in)):
     """For a job that shouldn't exist (a duplicate, raised on the wrong unit)."""
     _writer(p)
     _deny(R.may_lead(p))
     if not body.reason.strip():
         raise Problem(400, Msg("wo.err.need_reason"))
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     if wo["status"] not in R.ACTIVE:
         raise Problem(400, Msg("wo.err.not_open"))
     c = {"user_id": p.user_id, "name": p.name, "at": _now(),
@@ -544,7 +544,7 @@ async def cancel(wid: str, body: ReasonIn,
     step = {"at": c["at"], "by": p.user_id, "by_name": p.name,
             "from": wo["status"], "to": R.CANCELLED,
             "reason": c["reason"]}
-    return await _save(tdb, p, wo, "wo.cancelled",
+    return await _save(data, p, wo, "wo.cancelled",
                        changes={"status": R.CANCELLED, "cancelled": c},
                        push={"history": step}, after={"cancelled": c},
                        expect_status=R.ACTIVE)
@@ -558,14 +558,14 @@ class AmendIn(BaseModel):
 
 @router.post("/{wid}/amend")
 async def amend(wid: str, body: AmendIn,
-                p: Principal = Depends(current_principal)):
+                p: Person = Depends(signed_in)):
     """
     Correct a field on a signed job. The original stays on record next to
     the change, with who, when and why.
     """
     _writer(p)
-    tdb = TenantDB(p)
-    wo = await _load(tdb, wid)
+    data = CompanyData(p)
+    wo = await _load(data, wid)
     if wo["status"] not in R.SIGNED:
         raise Problem(400, Msg("wo.err.amend_needs_signed"))
     _deny(R.may_amend(p, wo), "wo.err.cannot_amend")
@@ -583,7 +583,7 @@ async def amend(wid: str, body: AmendIn,
         raise Problem(400, Msg("wo.err.no_change"))
     a = {**_stamp(p), "field": body.field, "before": wo.get(body.field),
          "after": new, "reason": body.reason.strip()}
-    return await _save(tdb, p, wo, "wo.amended",
+    return await _save(data, p, wo, "wo.amended",
                        changes={body.field: new}, push={"amendments": a},
                        before={body.field: wo.get(body.field)},
                        after={body.field: new, "reason": a["reason"]},

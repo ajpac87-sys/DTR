@@ -253,7 +253,7 @@ function woRow(w) {
   const techs = (w.assigned || []).map((a) => a.name).join(", ") || t("wo.unassigned");
   return `<button class="card list-item" data-wo="${esc(w.work_order_id)}">
     <span class="grow">
-      <span class="row tight"><b>${esc(t("wo.number", { n: String(w.number).padStart(4, "0") }))}</b>
+      <span class="row tight"><b class="tag">${esc(t("wo.number", { n: String(w.number).padStart(4, "0") }))}</b>
         <span class="pill">${esc(t("wo.unit_line", { unit: w.unit_number }))}</span>
         <span class="pill ${PRIORITY_CLASS[w.priority] || ""}">${esc(t("priority." + w.priority))}</span>
         <span class="pill st-${esc(w.status)}">${esc(t("status." + w.status))}</span></span>
@@ -334,7 +334,7 @@ SCREENS.wo = async (id) => {
 
   view.innerHTML = `
     <button class="link" id="back">‹ ${esc(t("wo.title"))}</button>
-    <div class="row"><h1 class="grow">${esc(t("wo.number", { n: no }))}</h1>
+    <div class="row"><h1 class="grow"><span class="tag">${esc(t("wo.number", { n: no }))}</span></h1>
       <span class="pill st-${esc(w.status)}">${esc(t("status." + w.status))}</span></div>
     <div class="row tight" style="margin-bottom:8px">
       <button class="pill linkish" id="unit">${esc(t("wo.unit_line", { unit: w.unit_number }))} · ${esc(t("type." + w.asset_type))}</button>

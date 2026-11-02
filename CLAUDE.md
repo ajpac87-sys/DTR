@@ -1,4 +1,4 @@
-# Project Brief: Shop Maintenance System (telematics-free InMotion)
+# Project Brief: DTR, shop maintenance and parts inventory
 
 > Working name: **DTR** (owner's choice, Nov 2, 2026; may change). Do not invent another.
 > Written Nov 2, 2026 from the owner's chat with Claude. Read this whole file before doing anything.
@@ -6,18 +6,23 @@
 
 ## 0. Decisions already made (read first)
 
-- **Nov 2, 2026 — Separate product (option B).** DTR is its own repo and its own
-  app, completely separate from InMotion. Owner's words: "maintenance software
-  with inventory", "nothing to do with telematics".
-- **What carried over from InMotion:** the same building blocks (FastAPI, Motor
-  /MongoDB, Pydantic, Railway) and the *rules* InMotion proved out: deny-by-default
-  company isolation, password hashing, the hash-chained change log, no
-  impersonation, nothing pre-filled. The InMotion `main.py` (UI embedded as a
-  string) was deliberately NOT copied; DTR keeps code in small files and the UI
-  in real HTML/JS files.
-- **Portals:** mechanic, shop manager, fleet manager, plus inventory. Company
-  admin and the Apex platform operator as in section 5.8.
-- Section 4 (Step Zero) is done. Section 10 item 1 is answered (B).
+- **Nov 2, 2026: DTR is its own product, built from scratch.** Owner's words:
+  "build everything from scratch", "I don't want it to look like we just
+  tried to have [InMotion] as is." DTR is its own repo, its own code, its own
+  look. **Do not copy code, file names, wording or design from InMotion.**
+  The owner's rules in section 7 still apply because they are his rules for
+  any system, not because of where they came from.
+- Scope in the owner's words: "maintenance software with inventory",
+  "nothing to do with telematics". Portals: mechanic, shop manager, fleet
+  manager, plus inventory. Company admin and the Apex platform operator.
+- Stack chosen for DTR: Python, FastAPI, MongoDB, plain HTML/JS screens with
+  no build step; deploys to Railway from GitHub.
+- Languages: English, Spanish, Hindi, Urdu (owner, Nov 2, 2026). Every word on
+  screen and every server message comes from dtr/static/locales/<lang>.json.
+  New text must be added to all four files (a test enforces it). Spanish,
+  Hindi and Urdu were machine-drafted and need review by native speakers.
+- Section 4 (Step Zero) and section 10 item 1 are finished and superseded by
+  the first bullet. Steps 2 and 3 of section 11 are built.
 
 ---
 
@@ -33,7 +38,7 @@ A maintenance and shop-management system for a trucking fleet that **already has
 
 **No telematics.** No GPS, no ELD, no hours of service, no hardware, no J1939. The fleet keeps Samsara for that.
 
-The goal is to get a foot in the door with a real customer, using as much of the existing InMotion code (`inmotion-v2`) as possible.
+The goal is to get a foot in the door with a real customer.
 
 ---
 
@@ -66,23 +71,9 @@ Not yet known: whether the pilot fleet's Samsara plan already includes Samsara's
 
 ---
 
-## 4. STEP ZERO: before writing any code
+## 4. Step Zero (finished)
 
-Do this first and report back to Alfonso in plain language. **Do not start building until he approves a direction.**
-
-1. **Audit `inmotion-v2`.** The last known state (Sept 2026): FastAPI + Motor (async MongoDB) + Pydantic backend, 657-test suite passing, multi-tenant with a `TENANT_SCOPED_COLLECTIONS` list (which includes `dvir_reports`), a regulatory register in `regulatory.py`, deployed on Railway via GitHub. Note: `main.py` was ~367 KB with the whole UI embedded as a string. **This is from memory notes and may be out of date. Verify everything against the actual repo.**
-2. **Make an inventory** of what already exists and what's reusable for this project:
-   - auth, users, roles, tenant isolation, platform-operator/super-admin console
-   - asset model (tractor and trailer as separate assets)
-   - DVIR models/routes
-   - any work order, PM, parts, or vendor code
-   - audit log, demo/live environment separation, go-live gate
-   - test suite status (run it and report the real numbers)
-3. **List everything telematics-related** that would be switched off or removed (ELD, HOS, GPS, J1939, FleetDataProvider/simulation, hardware).
-4. **Recommend one of these, with reasons, and wait for his decision:**
-   - **(A) One codebase, modules switched on/off per company.** This project = InMotion with the telematics module turned off for this tenant. *(Claude's earlier recommendation, since InMotion was designed to be telematics-vendor-agnostic.)*
-   - **(B) Separate repo**, copied from `inmotion-v2` with telematics stripped out.
-   Explain the trade-off in plain terms: (A) means fixes and features help both products and there's only one thing to maintain; (B) is simpler at first but the two copies drift apart over time.
+Done Nov 2, 2026. Superseded by section 0: DTR is built from scratch.
 
 ---
 
@@ -134,7 +125,7 @@ Plus a place to store **inspector and brake inspector qualification evidence** p
 - Downtime per unit
 
 ### 5.8 Roles
-Same role model as InMotion: tech / shop lead / fleet manager / company admin (sees all departments) / platform operator (Apex, across all customer fleets). Strict cross-company isolation: one fleet never sees another's data.
+Roles: tech / shop lead / fleet manager / company admin (sees all departments) / platform operator (Apex, across all customer fleets). Strict cross-company isolation: one fleet never sees another's data.
 
 ---
 
@@ -143,16 +134,16 @@ Same role model as InMotion: tech / shop lead / fleet manager / company admin (s
 - GPS, live location, trips, geofences
 - ELD, hours of service, driver logs
 - J1939 / CAN / hardware gateways / TPMS
-- The FleetDataProvider simulation / demo telemetry
+- Simulated or demo telemetry
 - AI camera inspection sessions
 - The national maintenance subscription program, tiers, pricing
 - Remote vehicle control of any kind
 
 ---
 
-## 7. Firm rules carried over from InMotion (do not reopen)
+## 7. Firm rules (do not reopen)
 
-- **Tenant isolation is absolute.** Every new collection must be added to the tenant-scoped list, with a test proving one company can't read another's data.
+- **Company isolation is absolute.** Every new collection must be added to `COMPANY_COLLECTIONS` in `dtr/db.py`; the test suite then checks it for leaks between companies.
 - **Tractor and trailer stay distinct assets** with dated pairing.
 - **No impersonation, anywhere, ever.** Acting as another user fabricates business records.
 - **Audit logging:** any data change by the platform operator/super-admin is logged truthfully, attributed to them, in the customer's hash-chained log. Reads/browsing are not logged.
@@ -188,7 +179,7 @@ Verified against eCFR, 49 CFR Part 396, "up to date as of 10/23/2026." **Part 39
 
 ## 9. Samsara integration (Phase 2, after the MVP works on manual entry)
 
-- **Read-only by default**, matching InMotion's rule that telematics is optional, never a dependency, and accessed through a normalization layer.
+- **Read-only by default.** Samsara is optional, never a dependency, and reached through one translation layer so it can be swapped.
 - What to pull: DVIRs and defects (so defects auto-create work requests), odometer and engine hours (to drive PM due dates), possibly fault codes.
 - Samsara's developer changelog shows DVIR and defect endpoints (`GET /fleet/dvirs/history`, `GET /fleet/defects/history`, `PATCH /fleet/defects/{id}` to resolve) and vehicle stats for odometer/engine hours. **Those changelog entries are years old. Verify against Samsara's current API docs before writing any integration code.**
 - **Decision for Alfonso:** writing a defect resolution back to Samsara (so the driver sees the certification in the Samsara app, see 5.2) is a write, not a read. It's not vehicle control, but it breaks "read-only." Explain plainly and let him decide.
@@ -198,7 +189,7 @@ Verified against eCFR, 49 CFR Part 396, "up to date as of 10/23/2026." **Part 39
 
 ## 10. Open decisions (do NOT invent answers; ask Alfonso)
 
-1. One codebase with modules (A) vs separate repo (B). See Step Zero.
+1. ~~One codebase vs separate repo~~ Answered: separate, built from scratch.
 2. Product name.
 3. Whether the pilot fleet already pays for Samsara Maintenance.
 4. How the repair certification reaches the driver for 396.13 (write-back vs printout vs other).
@@ -212,7 +203,7 @@ Verified against eCFR, 49 CFR Part 396, "up to date as of 10/23/2026." **Part 39
 
 ## 11. Build order
 
-1. **Step Zero audit** and decision (section 4).
+1. ~~Step Zero audit~~ (finished; see section 0).
 2. Assets + CSV import.
 3. Work orders (manual) + tech sign-off.
 4. DVIR defect intake (manual) → WO → repair certification → out-of-service status.

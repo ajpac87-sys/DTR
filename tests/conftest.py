@@ -7,6 +7,11 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 os.environ.setdefault("JWT_SECRET", "test-secret-for-tests-only-0123456789abcdef")
 
+# Real passwords use a deliberately slow fingerprint. Tests create many
+# accounts, so they use a lighter one; the checks are otherwise the same.
+import dtr.passwords as _pw  # noqa: E402
+_pw.COST = 12
+
 OPERATOR = {"email": "ops@apex.example.com", "password": "operator-pass-1"}
 
 

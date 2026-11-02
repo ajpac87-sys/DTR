@@ -17,7 +17,7 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .i18n import Msg, Problem
-from .tenancy import Principal, Role
+from .access import Person, Role
 
 ISSUER = "dtr"
 TOKEN_HOURS = 12
@@ -35,7 +35,7 @@ def _secret() -> str:
     return s
 
 
-def encode_token(p: Principal, hours: int = TOKEN_HOURS) -> str:
+def encode_token(p: Person, hours: int = TOKEN_HOURS) -> str:
     now = datetime.now(timezone.utc)
     claims = {
         "iss": ISSUER, "sub": p.user_id, "org": p.org_id,
@@ -46,25 +46,25 @@ def encode_token(p: Principal, hours: int = TOKEN_HOURS) -> str:
     return jwt.encode(claims, _secret(), algorithm="HS256")
 
 
-def principal_from_claims(claims: dict[str, Any]) -> Principal:
+def person_from_claims(claims: dict[str, Any]) -> Person:
     try:
         role = Role(claims["role"])
     except (KeyError, ValueError):
         raise ValueError("token has no valid role")
-    return Principal(user_id=str(claims.get("sub") or ""),
+    return Person(user_id=str(claims.get("sub") or ""),
                      org_id=claims.get("org") or None,
                      role=role, name=str(claims.get("name") or ""))
 
 
-def decode_token(token: str) -> Principal:
+def decode_token(token: str) -> Person:
     claims = jwt.decode(token, _secret(), algorithms=["HS256"],
                         issuer=ISSUER, options={"require": ["exp", "sub"]})
-    return principal_from_claims(claims)
+    return person_from_claims(claims)
 
 
-async def current_principal(
+async def signed_in(
         cred: HTTPAuthorizationCredentials | None = Depends(_bearer)
-) -> Principal:
+) -> Person:
     if cred is None:
         raise Problem(401, Msg("err.sign_in_first"))
     try:

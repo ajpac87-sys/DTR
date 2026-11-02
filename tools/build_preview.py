@@ -23,11 +23,14 @@ def main() -> None:
                for p in sorted((STATIC / "locales").glob("*.json"))}
     # Keep "</script>" inside the data from closing the tag early.
     data = json.dumps(locales, ensure_ascii=False).replace("</", "<\\/")
+    fonts = re.search(r'<link rel="stylesheet" href="(https://fonts[^"]+)"', html).group(1)
     page = f"""<title>DTR Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="{fonts}">
 <style>
 {css}
 </style>
-<div class="preview-bar">PREVIEW · sample data · nothing is saved · reload to start over</div>
+<div class="preview-bar">Preview · sample data · nothing is saved · reload to start over</div>
 {body.strip()}
 <script>window.DTR_LOCALES = {data};
 try {{ localStorage.removeItem("dtr_token"); }} catch (e) {{}}</script>

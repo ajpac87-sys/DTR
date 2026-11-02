@@ -15,12 +15,12 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, EmailStr, Field
 
-from . import audit
-from .auth import current_principal, encode_token
-from .db import TenantDB, db
+from . import changelog
+from .auth import signed_in, encode_token
+from .db import CompanyData, db
 from .i18n import LANGUAGES, Msg, Problem, pick
 from .passwords import hash_password, password_ok, verify_password
-from .tenancy import MANAGE_PEOPLE, Principal, Role, can_grant
+from .access import MANAGE_PEOPLE, Person, Role, can_grant
 
 router = APIRouter(prefix="/api")
 
@@ -40,8 +40,8 @@ def _public(u: dict) -> dict:
             "language": u.get("language") or "en"}
 
 
-def _principal(u: dict) -> Principal:
-    return Principal(user_id=u["user_id"], org_id=u.get("org_id"),
+def _person(u: dict) -> Person:
+    return Person(user_id=u["user_id"], org_id=u.get("org_id"),
                      role=Role(u["role"]), name=u["name"])
 
 
@@ -62,12 +62,12 @@ async def login(body: LoginIn):
     org = None
     if u.get("org_id"):
         org = await db().orgs.find_one({"org_id": u["org_id"]}, {"_id": 0})
-    return {"token": encode_token(_principal(u)), "user": _public(u),
+    return {"token": encode_token(_person(u)), "user": _public(u),
             "org": org}
 
 
 @router.get("/me")
-async def me(p: Principal = Depends(current_principal)):
+async def me(p: Person = Depends(signed_in)):
     u = await db().users.find_one({"user_id": p.user_id}, {"_id": 0})
     org = None
     if p.org_id:
@@ -81,7 +81,7 @@ class PrefsIn(BaseModel):
 
 
 @router.patch("/me")
-async def set_prefs(body: PrefsIn, p: Principal = Depends(current_principal)):
+async def set_prefs(body: PrefsIn, p: Person = Depends(signed_in)):
     """A person's own language. Saved so it follows them to any phone."""
     lang = pick(body.language)
     await db().users.update_one({"user_id": p.user_id},
@@ -89,8 +89,8 @@ async def set_prefs(body: PrefsIn, p: Principal = Depends(current_principal)):
     return {"language": lang}
 
 
-def _perms(p: Principal) -> set[str]:
-    from .tenancy import PERMISSIONS
+def _perms(p: Person) -> set[str]:
+    from .access import PERMISSIONS
     return set(PERMISSIONS.get(p.role, frozenset()))
 
 
@@ -120,7 +120,7 @@ async def _create_user(org_id: str | None, body: UserIn) -> dict:
 
 
 @router.get("/users")
-async def list_users(p: Principal = Depends(current_principal)):
+async def list_users(p: Person = Depends(signed_in)):
     if p.is_operator:
         raise Problem(400, Msg("err.operator_open_company"))
     rows = await db().users.find({"org_id": p.org_id}, {"_id": 0}
@@ -131,13 +131,13 @@ async def list_users(p: Principal = Depends(current_principal)):
 
 
 @router.post("/users", status_code=201)
-async def add_user(body: UserIn, p: Principal = Depends(current_principal)):
+async def add_user(body: UserIn, p: Person = Depends(signed_in)):
     if not p.may(MANAGE_PEOPLE) or not can_grant(p.role, body.role):
         raise Problem(403, Msg("err.cannot_add_role",
                                  actor=Msg("role." + p.role.value),
                                  target=Msg("role." + body.role.value)))
     u = await _create_user(p.org_id, body)
-    await audit.record(TenantDB(p), p, "user.created", "user", u["user_id"],
+    await changelog.write(CompanyData(p), p, "user.created", "user", u["user_id"],
                        after=_public(u))
     return _public(u)
 
@@ -151,24 +151,24 @@ class OrgIn(BaseModel):
     admin_password: str = Field(max_length=256)
 
 
-def _operator_only(p: Principal) -> None:
+def _operator_only(p: Person) -> None:
     if not p.is_operator:
         raise Problem(403, Msg("err.operator_only"))
 
 
 @router.get("/operator/orgs")
-async def list_orgs(p: Principal = Depends(current_principal)):
+async def list_orgs(p: Person = Depends(signed_in)):
     _operator_only(p)
     orgs = await db().orgs.find({}, {"_id": 0}).sort("name", 1).to_list(None)
     for o in orgs:
-        o["units"] = await TenantDB(p).count(
+        o["units"] = await CompanyData(p).count(
             "assets", {"org_id": o["org_id"], "status": "active"})
         o["people"] = await db().users.count_documents({"org_id": o["org_id"]})
     return {"orgs": orgs}
 
 
 @router.post("/operator/orgs", status_code=201)
-async def create_org(body: OrgIn, p: Principal = Depends(current_principal)):
+async def create_org(body: OrgIn, p: Person = Depends(signed_in)):
     _operator_only(p)
     org = {"org_id": uuid.uuid4().hex, "name": body.company_name.strip(),
            "created_at": _now(), "created_by": p.user_id}
@@ -177,10 +177,10 @@ async def create_org(body: OrgIn, p: Principal = Depends(current_principal)):
         name=body.admin_name, email=body.admin_email, role=Role.ADMIN,
         password=body.admin_password))
     # Logged in the CUSTOMER's own log, truthfully attributed to Apex.
-    as_admin = TenantDB(_principal(admin))
-    await audit.record(as_admin, p, "org.created",
+    as_admin = CompanyData(_person(admin))
+    await changelog.write(as_admin, p, "org.created",
                        "org", org["org_id"], after={"name": org["name"]})
-    await audit.record(as_admin, p, "user.created",
+    await changelog.write(as_admin, p, "user.created",
                        "user", admin["user_id"], after=_public(admin))
     return {"org": org, "admin": _public(admin)}
 

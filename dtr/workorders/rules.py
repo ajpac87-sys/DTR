@@ -29,7 +29,7 @@ import re
 from datetime import date, datetime, timezone
 
 from ..i18n import Msg
-from ..tenancy import Principal, Role
+from ..access import Person, Role
 
 OPEN = "open"
 IN_PROGRESS = "in_progress"
@@ -78,26 +78,26 @@ TECHS = {Role.MECHANIC, Role.SHOP_MANAGER, Role.ADMIN}
 ANY_STAFF = {Role.MECHANIC, Role.SHOP_MANAGER, Role.FLEET_MANAGER, Role.ADMIN}
 
 
-def may_create(p: Principal) -> bool:
+def may_create(p: Person) -> bool:
     return p.role in ANY_STAFF
 
 
-def may_work(p: Principal) -> bool:
+def may_work(p: Person) -> bool:
     """Change status, add parts, outside work, own labor."""
     return p.role in TECHS
 
 
-def may_note(p: Principal) -> bool:
+def may_note(p: Person) -> bool:
     """Notes and photos. A fleet manager can add these too."""
     return p.role in ANY_STAFF
 
 
-def may_lead(p: Principal) -> bool:
+def may_lead(p: Person) -> bool:
     """Assign techs, log labor for others, close, cancel, amend."""
     return p.role in SHOP_LEADS
 
 
-def may_sign(p: Principal, wo: dict) -> bool:
+def may_sign(p: Person, wo: dict) -> bool:
     """
     The person signing must have worked the job: assigned to it or logged
     labor on it. A shop manager or admin may sign any job (they supervise).
@@ -112,7 +112,7 @@ def may_sign(p: Principal, wo: dict) -> bool:
                for l in wo.get("labor", []))
 
 
-def may_amend(p: Principal, wo: dict) -> bool:
+def may_amend(p: Person, wo: dict) -> bool:
     if p.role in SHOP_LEADS:
         return True
     so = wo.get("signoff") or {}
@@ -229,7 +229,7 @@ def _norm_name(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip()).casefold()
 
 
-def check_signoff(p: Principal, wo: dict, typed_name: str) -> list:
+def check_signoff(p: Person, wo: dict, typed_name: str) -> list:
     """
     What stops this person signing this job off now.
 
